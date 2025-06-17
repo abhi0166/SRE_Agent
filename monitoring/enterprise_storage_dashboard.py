@@ -18,7 +18,64 @@ app = Flask(__name__)
 def get_comprehensive_storage_metrics():
     """Get all storage metrics using the enterprise collector."""
     collector = StorageMetricsCollector()
-    return collector.collect_all_metrics()
+    storage_metrics = collector.collect_all_metrics()
+    
+    # Add enhanced system metrics from premium dashboard
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        network = psutil.net_io_counters()
+        
+        # Top processes
+        processes = []
+        for proc in psutil.process_iter(['pid', 'name', 'cpu_percent', 'memory_percent']):
+            try:
+                if proc.info['cpu_percent'] > 0:
+                    processes.append(proc.info)
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        
+        top_processes = sorted(processes, key=lambda x: x['cpu_percent'], reverse=True)[:10]
+        
+        # Boot time and uptime
+        boot_time = datetime.fromtimestamp(psutil.boot_time())
+        uptime = datetime.now() - boot_time
+        
+        # Enhanced system metrics
+        storage_metrics['enhanced_system'] = {
+            'cpu': {
+                'percent': cpu_percent,
+                'cores': psutil.cpu_count(),
+                'frequency': psutil.cpu_freq()._asdict() if psutil.cpu_freq() else None
+            },
+            'memory': {
+                'total': memory.total,
+                'available': memory.available,
+                'percent': memory.percent,
+                'used': memory.used,
+                'cached': getattr(memory, 'cached', 0)
+            },
+            'disk': {
+                'total': disk.total,
+                'used': disk.used,
+                'free': disk.free,
+                'percent': (disk.used / disk.total) * 100
+            },
+            'network': {
+                'bytes_sent': network.bytes_sent,
+                'bytes_recv': network.bytes_recv,
+                'packets_sent': network.packets_sent,
+                'packets_recv': network.packets_recv
+            },
+            'processes': top_processes,
+            'uptime': str(uptime).split('.')[0],
+            'load_average': os.getloadavg() if hasattr(os, 'getloadavg') else [0, 0, 0]
+        }
+    except Exception as e:
+        storage_metrics['enhanced_system'] = {'error': str(e)}
+    
+    return storage_metrics
 
 def calculate_storage_efficiency_score(metrics):
     """Calculate overall storage efficiency score (0-100)."""
@@ -1438,32 +1495,42 @@ def storage_health_api():
         'performance_trends': get_performance_trends(metrics)
     })
 
-@app.route('/api/storage/device/<device_name>')
+@app.route('/api/storage/device/<path:device_name>')
 def device_details_api(device_name):
     """API endpoint for specific device details."""
     metrics = get_comprehensive_storage_metrics()
     device_info = None
     
-    # Find the specific device
+    # Find the specific device - try multiple matching strategies
     if metrics.get('physical_layer', {}).get('disk_devices'):
         for device in metrics['physical_layer']['disk_devices']:
-            if device_name in device.get('device', '') or device_name in device.get('mountpoint', ''):
+            device_path = device.get('device', '')
+            mountpoint = device.get('mountpoint', '')
+            
+            # Try exact match, partial match, or mountpoint match
+            if (device_name == device_path or 
+                device_name in device_path or 
+                device_name == mountpoint or 
+                device_name in mountpoint or
+                device_path.endswith(device_name) or
+                mountpoint.endswith(device_name)):
                 device_info = device
                 break
     
     if device_info:
         # Add performance data if available
         perf_data = metrics.get('performance_layer', {}).get('io_statistics', {})
-        device_perf = perf_data.get(device_name.replace('/dev/', ''), {})
+        device_key = device_name.replace('/dev/', '').replace('/', '')
+        device_perf = perf_data.get(device_key, {})
         
         return jsonify({
             'device': device_info,
             'performance': device_perf,
-            'smart_data': metrics.get('physical_layer', {}).get('smart_data', {}).get(device_name.replace('/dev/', ''), {}),
+            'smart_data': metrics.get('physical_layer', {}).get('smart_data', {}).get(device_key, {}),
             'timestamp': datetime.now().isoformat()
         })
     else:
-        return jsonify({'error': 'Device not found'}), 404
+        return jsonify({'error': f'Device {device_name} not found'}), 404
 
 @app.route('/api/storage/filesystem/<path:mount_path>')
 def filesystem_details_api(mount_path):
@@ -1487,7 +1554,7 @@ def filesystem_details_api(mount_path):
     else:
         return jsonify({'error': 'Filesystem not found'}), 404
 
-@app.route('/storage/device/<device_name>')
+@app.route('/storage/device/<path:device_name>')
 def device_detail_view(device_name):
     """Detailed view for a specific storage device."""
     return render_template_string("""
