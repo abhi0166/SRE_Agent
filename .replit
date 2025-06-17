@@ -18,7 +18,7 @@ args = "Webhook Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Premium Dashboard"
+args = "Enterprise Storage Dashboard"
 
 [[workflows.workflow]]
 name = "Webhook Server"
@@ -30,12 +30,12 @@ args = "python run.py"
 waitForPort = 5000
 
 [[workflows.workflow]]
-name = "Premium Dashboard"
+name = "Enterprise Storage Dashboard"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "python monitoring/premium_dashboard.py"
+args = "python monitoring/enterprise_storage_dashboard.py"
 waitForPort = 3000
 
 [deployment]
