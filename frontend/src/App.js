@@ -55,10 +55,30 @@ function App() {
     return () => clearInterval(interval);
   }, [fetchSystemData]);
 
+  // Debug rendering
+  if (error) {
+    return (
+      <div style={{ padding: '20px', backgroundColor: '#f8f9fa', color: '#dc3545' }}>
+        <h2>Monitoring Dashboard - Connection Error</h2>
+        <p><strong>Error:</strong> {error}</p>
+        <button onClick={fetchSystemData} style={{ padding: '10px 20px', marginTop: '10px' }}>
+          Retry Connection
+        </button>
+        <div style={{ marginTop: '20px', fontSize: '14px' }}>
+          <p><strong>Debug Info:</strong></p>
+          <p>Loading: {loading ? 'Yes' : 'No'}</p>
+          <p>WebSocket Connected: {connected ? 'Yes' : 'No'}</p>
+          <p>System Status: {systemStatus ? 'Loaded' : 'Not loaded'}</p>
+          <p>Alerts Count: {alerts?.length || 0}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading && !systemStatus) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
+      <div style={{ padding: '20px', textAlign: 'center', backgroundColor: '#f8f9fa' }}>
+        <div style={{ border: '2px solid #007bff', borderRadius: '50%', width: '40px', height: '40px', borderTop: '2px solid transparent', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }}></div>
         <p>Initializing enterprise monitoring platform...</p>
       </div>
     );
