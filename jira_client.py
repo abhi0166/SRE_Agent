@@ -59,7 +59,8 @@ class JiraClient:
             return {'success': False, 'error': 'JIRA client not configured'}
         
         try:
-            url = f"{self.jira_url}/rest/api/2/myself"
+            # Try API v3 first (recommended for Cloud)
+            url = f"{self.jira_url}/rest/api/3/myself"
             response = requests.get(url, headers=self.headers, timeout=10)
             
             if response.status_code == 200:
@@ -67,8 +68,16 @@ class JiraClient:
                 return {
                     'success': True,
                     'user': user_info.get('displayName', 'Unknown'),
-                    'email': user_info.get('emailAddress', 'Unknown')
+                    'email': user_info.get('emailAddress', 'Unknown'),
+                    'account_id': user_info.get('accountId', 'Unknown')
                 }
+            elif response.status_code == 401:
+                # Provide specific guidance for authentication issues
+                error_msg = "Authentication failed. For Atlassian Cloud, ensure:\n"
+                error_msg += "- Username is your full email address\n"
+                error_msg += "- API token is valid and from Account Settings > Security > API tokens\n"
+                error_msg += "- Account has access to the JIRA instance"
+                return {'success': False, 'error': error_msg}
             else:
                 return {
                     'success': False,
