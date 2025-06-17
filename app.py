@@ -532,7 +532,7 @@ def create_jira_ticket():
         
         if jira_result.get('success'):
             ticket_key = jira_result.get('ticket_key', 'Unknown')
-            ticket_url = f"{jira_client.base_url}/browse/{ticket_key}"
+            ticket_url = f"{jira_client.jira_url}/browse/{ticket_key}"
             
             # Update alert with JIRA ticket information
             if alert_id != 'unknown':

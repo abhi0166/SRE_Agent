@@ -289,21 +289,21 @@ class SlackNotifier:
             "type": "button",
             "text": {
                 "type": "plain_text",
-                "text": "📖 Operations Runbook",
-                "emoji": True
+                "text": "Operations Runbook",
+                "emoji": False
             },
             "url": f"{runbook_url}?alert={alertname}&instance={instance}&severity={severity}",
             "style": "primary"
         })
         
-        # Executive Dashboard - with filtered view for this alert
-        dashboard_url = annotations.get('dashboard_url', f"http://localhost:3000/device/{labels.get('device', 'overview')}")
+        # Executive Dashboard - with filtered view for this alert  
+        dashboard_url = annotations.get('dashboard_url', f"http://localhost:3000")
         action_elements.append({
             "type": "button", 
             "text": {
                 "type": "plain_text",
-                "text": "📊 Storage Dashboard",
-                "emoji": True
+                "text": "Storage Dashboard",
+                "emoji": False
             },
             "url": f"{dashboard_url}?filter={alertname}&instance={instance}"
         })
@@ -314,8 +314,8 @@ class SlackNotifier:
             "type": "button",
             "text": {
                 "type": "plain_text", 
-                "text": "📈 Live Metrics",
-                "emoji": True
+                "text": "Live Metrics",
+                "emoji": False
             },
             "url": f"{metrics_url}?alert_id={alert_id}"
         })
@@ -326,8 +326,8 @@ class SlackNotifier:
             "type": "button",
             "text": {
                 "type": "plain_text",
-                "text": "🎫 Create JIRA Ticket",
-                "emoji": True
+                "text": "Create JIRA Ticket",
+                "emoji": False
             },
             "url": f"{jira_create_url}?alert_id={alert_id}&alertname={alertname}&severity={severity}&instance={instance}",
             "style": "danger" if severity.lower() == 'critical' else "default"
