@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
 from database.sqlite_store import SQLiteAlertStore
-from slack_integration_enterprise import send_enterprise_alert_to_slack
+from slack_integration import send_alert_to_slack, get_slack_notifier
 
 # Load environment variables
 load_dotenv()
@@ -162,7 +162,8 @@ def health_check():
     """
     # Test Slack connectivity
     slack_status = False
-    slack_notifier = get_slack_notifier()
+    from slack_integration_enterprise import get_enterprise_slack_notifier
+    slack_notifier = get_enterprise_slack_notifier()
     if slack_notifier:
         slack_status = slack_notifier.test_connection()
     
