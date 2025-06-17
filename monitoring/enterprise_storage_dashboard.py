@@ -486,7 +486,33 @@ def enterprise_storage_dashboard():
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .grid-4 { grid-template-columns: repeat(4, 1fr); }
         .grid-responsive { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-        .grid-storage { grid-template-columns: 2fr 1fr 1fr; }
+        .grid-storage { 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: var(--space-xl);
+        }
+        
+        /* Ensure equal sizing on all screen sizes */
+        @media (min-width: 1200px) {
+            .grid-storage { 
+                grid-template-columns: repeat(3, 1fr);
+                gap: var(--space-2xl);
+            }
+        }
+        
+        @media (min-width: 1600px) {
+            .grid-storage { 
+                grid-template-columns: repeat(3, 1fr);
+                gap: 2rem;
+            }
+        }
+        
+        /* Responsive behavior for smaller screens */
+        @media (max-width: 1199px) {
+            .grid-storage { 
+                grid-template-columns: 1fr;
+                gap: var(--space-xl);
+            }
+        }
         
         /* Cards */
         .card {
@@ -499,6 +525,14 @@ def enterprise_storage_dashboard():
             backdrop-filter: blur(20px);
             position: relative;
             overflow: hidden;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Ensure equal height for storage section cards */
+        .grid-storage .card {
+            min-height: 600px;
         }
         
         .card::before {
