@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 
 # Enable CORS for all domains on all routes
-CORS(app, origins=["http://localhost:3000", "https://*.replit.app"], supports_credentials=True)
+CORS(app, origins=["http://localhost:3000", "http://172.31.128.110:3000", "https://*.replit.app"], supports_credentials=True)
 
 # Initialize JIRA client and database
 jira_client = JiraClient()
