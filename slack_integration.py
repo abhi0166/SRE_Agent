@@ -283,8 +283,15 @@ class SlackNotifier:
         # Enterprise action center with buttons
         action_elements = []
         
+        # Get external domain for accessible URLs
+        replit_domain = os.environ.get('REPLIT_DOMAINS', 'localhost:5000').split(',')[0]
+        
         # Operations Runbook - enhanced with alert-specific context
-        runbook_url = annotations.get('runbook_url', f"http://localhost:5000/runbooks/{alertname.lower()}")
+        if 'runbook_url' in annotations and annotations['runbook_url'].startswith('http'):
+            runbook_url = annotations['runbook_url']
+        else:
+            runbook_url = f"https://{replit_domain}/runbooks/{alertname.lower()}"
+        
         action_elements.append({
             "type": "button",
             "text": {
@@ -296,8 +303,12 @@ class SlackNotifier:
             "style": "primary"
         })
         
-        # Executive Dashboard - with filtered view for this alert  
-        dashboard_url = annotations.get('dashboard_url', f"http://localhost:3000")
+        # Storage Dashboard - with filtered view for this alert  
+        if 'dashboard_url' in annotations and annotations['dashboard_url'].startswith('http'):
+            dashboard_url = annotations['dashboard_url']
+        else:
+            dashboard_url = f"https://{replit_domain.replace(':5000', ':3000')}"
+        
         action_elements.append({
             "type": "button", 
             "text": {
@@ -309,7 +320,11 @@ class SlackNotifier:
         })
             
         # Real-time Metrics - direct link to specific device/metric
-        metrics_url = alert_info.get('generatorURL', f"http://localhost:3000")
+        if alert_info.get('generatorURL') and alert_info['generatorURL'].startswith('http'):
+            metrics_url = alert_info['generatorURL']
+        else:
+            metrics_url = f"https://{replit_domain.replace(':5000', ':3000')}"
+            
         action_elements.append({
             "type": "button",
             "text": {
@@ -321,7 +336,8 @@ class SlackNotifier:
         })
         
         # On-Call JIRA Ticket Creation - always available for immediate escalation
-        jira_create_url = f"http://localhost:5000/create-jira-ticket"
+        # Use the external accessible URL instead of localhost
+        jira_create_url = f"https://{os.environ.get('REPLIT_DOMAINS', 'localhost:5000').split(',')[0]}/create-jira-ticket"
         action_elements.append({
             "type": "button",
             "text": {
