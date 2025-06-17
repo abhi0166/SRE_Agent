@@ -8,7 +8,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "dev": "BROWSER=none PORT=3000 react-scripts start"
+    "dev": "BROWSER=none PORT=3000 react-scripts start",
+    "serve": "serve -s build -l 3000"
   },
   "keywords": ["monitoring", "dashboard", "react", "real-time"],
   "author": "",
