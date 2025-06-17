@@ -30,6 +30,7 @@
     "lodash.debounce": "^4.0.8",
     "lodash.throttle": "^4.1.1"
   },
+  "proxy": "http://localhost:5000",
   "browserslist": {
     "production": [
       ">0.2%",

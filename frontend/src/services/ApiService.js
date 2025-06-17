@@ -1,42 +1,26 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://172.31.128.110:5000';
+// Simple, direct API configuration
+const API_BASE_URL = '/api';
 
 class ApiService {
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      timeout: 10000,
+      timeout: 15000,
       headers: {
         'Content-Type': 'application/json',
       },
     });
 
-    // Request interceptor for performance tracking
-    this.client.interceptors.request.use(
-      (config) => {
-        config.metadata = { startTime: new Date() };
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    // Response interceptor for error handling and performance logging
+    // Response interceptor for logging
     this.client.interceptors.response.use(
       (response) => {
-        const endTime = new Date();
-        const duration = endTime - response.config.metadata.startTime;
-        console.log(`API Call: ${response.config.url} took ${duration}ms`);
+        console.log(`API Success: ${response.config.url}`);
         return response;
       },
       (error) => {
-        if (error.response) {
-          console.error(`API Error: ${error.response.status} - ${error.response.data.message || error.message}`);
-        } else if (error.request) {
-          console.error('API Error: No response received');
-        } else {
-          console.error(`API Error: ${error.message}`);
-        }
+        console.error(`API Error: ${error.message}`);
         return Promise.reject(error);
       }
     );
@@ -44,7 +28,7 @@ class ApiService {
 
   // System status endpoints
   async getSystemStatus() {
-    const response = await this.client.get('/api/status');
+    const response = await this.client.get('/status');
     return response.data;
   }
 
@@ -58,22 +42,23 @@ class ApiService {
     const { limit = 50, severity, status, offset = 0 } = params;
     const queryParams = new URLSearchParams({
       limit: limit.toString(),
-      ...(severity && { severity }),
-      ...(status && { status }),
-      ...(offset && { offset: offset.toString() })
+      offset: offset.toString()
     });
-
-    const response = await this.client.get(`/api/alerts?${queryParams}`);
+    
+    if (severity) queryParams.append('severity', severity);
+    if (status) queryParams.append('status', status);
+    
+    const response = await this.client.get(`/alerts?${queryParams}`);
     return response.data;
   }
 
   async getAlert(alertId) {
-    const response = await this.client.get(`/api/alerts/${alertId}`);
+    const response = await this.client.get(`/alerts/${alertId}`);
     return response.data;
   }
 
   async updateAlertStatus(alertId, status, metadata = {}) {
-    const response = await this.client.put(`/api/alerts/${alertId}/status`, {
+    const response = await this.client.put(`/alerts/${alertId}/status`, {
       status,
       metadata
     });
@@ -81,47 +66,43 @@ class ApiService {
   }
 
   async getAlertStats() {
-    const response = await this.client.get('/api/alerts/stats');
+    const response = await this.client.get('/alerts/stats');
     return response.data;
   }
 
-  // System metrics endpoints
   async getSystemMetrics(params = {}) {
     const { hours = 24, hostname } = params;
     const queryParams = new URLSearchParams({
-      hours: hours.toString(),
-      ...(hostname && { hostname })
+      hours: hours.toString()
     });
-
-    const response = await this.client.get(`/api/metrics?${queryParams}`);
+    
+    if (hostname) queryParams.append('hostname', hostname);
+    
+    const response = await this.client.get(`/metrics?${queryParams}`);
     return response.data;
   }
 
-  // Database endpoints
   async getDatabaseStatus() {
-    const response = await this.client.get('/api/database/status');
+    const response = await this.client.get('/database/status');
     return response.data;
   }
 
-  // Webhook testing
   async testWebhook(alertData) {
     const response = await this.client.post('/webhook/test', alertData);
     return response.data;
   }
 
-  // Batch operations for large-scale monitoring
+  // High-performance endpoints for large-scale monitoring
   async getBatchAlerts(batchSize = 1000, page = 0) {
-    const response = await this.client.get('/api/alerts/batch', {
-      params: {
-        batch_size: batchSize,
-        page
-      }
+    const response = await this.client.post('/alerts/batch', {
+      batch_size: batchSize,
+      page: page
     });
     return response.data;
   }
 
   async getBatchMetrics(nodeIds, timeRange) {
-    const response = await this.client.post('/api/metrics/batch', {
+    const response = await this.client.post('/metrics/batch', {
       node_ids: nodeIds,
       time_range: timeRange
     });
@@ -130,18 +111,18 @@ class ApiService {
 
   // Performance optimized endpoints for large datasets
   async getAlertsSummary(timeRange = '24h') {
-    const response = await this.client.get(`/api/alerts/summary?range=${timeRange}`);
+    const response = await this.client.get(`/alerts/summary?range=${timeRange}`);
     return response.data;
   }
 
   async getMetricsSummary(timeRange = '24h') {
-    const response = await this.client.get(`/api/metrics/summary?range=${timeRange}`);
+    const response = await this.client.get(`/metrics/summary?range=${timeRange}`);
     return response.data;
   }
 
-  // Search and filtering for large datasets
+  // Search and filtering endpoints
   async searchAlerts(query, filters = {}) {
-    const response = await this.client.post('/api/alerts/search', {
+    const response = await this.client.post('/alerts/search', {
       query,
       filters
     });
@@ -149,28 +130,17 @@ class ApiService {
   }
 
   async getFilteredMetrics(filters) {
-    const response = await this.client.post('/api/metrics/filter', filters);
+    const response = await this.client.post('/metrics/filtered', {
+      filters
+    });
     return response.data;
   }
 
   // Real-time subscription endpoints
   async subscribeToAlerts(callback) {
-    // Implementation for Server-Sent Events or WebSocket subscription
-    const eventSource = new EventSource(`${API_BASE_URL}/api/alerts/stream`);
-    
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      callback(data);
-    };
-
-    eventSource.onerror = (error) => {
-      console.error('SSE connection error:', error);
-      eventSource.close();
-    };
-
-    return () => eventSource.close();
+    // WebSocket connection logic would go here
+    console.log('WebSocket subscription not implemented');
   }
 }
 
-export { ApiService };
 export default new ApiService();
