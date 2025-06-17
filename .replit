@@ -15,6 +15,10 @@ author = "agent"
 task = "workflow.run"
 args = "Webhook Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Monitoring Dashboard"
+
 [[workflows.workflow]]
 name = "Webhook Server"
 author = "agent"
@@ -24,8 +28,21 @@ task = "shell.exec"
 args = "python run.py"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "Monitoring Dashboard"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python monitoring/dashboard.py"
+waitForPort = 3000
+
 [deployment]
 run = ["sh", "-c", "pip3 install flask requests python-dotenv && echo \"Dependencies installed successfully\""]
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
 
 [[ports]]
 localPort = 5000
