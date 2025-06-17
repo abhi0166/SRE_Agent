@@ -11,6 +11,7 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
 from database.sqlite_store import SQLiteAlertStore
+from slack_integration import send_alert_to_slack, get_slack_notifier
 
 # Load environment variables
 load_dotenv()
@@ -116,26 +117,35 @@ def handle_alert():
             logger.warning("No valid alerts found in webhook data")
             return jsonify({'message': 'No valid alerts to process'}), 200
         
+        # Send alert to Slack first
+        slack_sent = send_alert_to_slack(alert_data)
+        if slack_sent:
+            logger.info("Alert sent to Slack successfully")
+        else:
+            logger.warning("Failed to send alert to Slack")
+        
         # Create JIRA ticket
         result = jira_client.create_ticket(jira_data)
         
-        # Store alert in database regardless of JIRA result
+        # Store alert in database regardless of JIRA/Slack result
         alert_id = alert_store.store_alert(alert_data, result)
         
         if result['success']:
             logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")
             return jsonify({
-                'message': 'JIRA ticket created successfully',
+                'message': 'Alert processed successfully',
                 'ticket_key': result['ticket_key'],
                 'ticket_url': result['ticket_url'],
-                'alert_id': alert_id
+                'alert_id': alert_id,
+                'slack_sent': slack_sent
             }), 200
         else:
             logger.error(f"Failed to create JIRA ticket: {result['error']}, but stored alert: {alert_id}")
             return jsonify({
                 'message': 'Alert processed and stored',
                 'alert_id': alert_id,
-                'jira_error': result['error']
+                'jira_error': result['error'],
+                'slack_sent': slack_sent
             }), 200
             
     except Exception as e:
@@ -150,12 +160,64 @@ def health_check():
     """
     Health check endpoint.
     """
+    # Test Slack connectivity
+    slack_status = False
+    slack_notifier = get_slack_notifier()
+    if slack_notifier:
+        slack_status = slack_notifier.test_connection()
+    
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'jira_configured': jira_client.is_configured(),
-        'database_connected': alert_store.is_connected()
+        'database_connected': alert_store.is_connected(),
+        'slack_connected': slack_status
     }), 200
+
+@app.route('/test/slack', methods=['POST'])
+def test_slack():
+    """
+    Test Slack integration with a sample alert.
+    """
+    try:
+        # Create a test alert
+        test_alert = {
+            'alertname': 'Storage Test Alert',
+            'status': 'firing',
+            'labels': {
+                'severity': 'warning',
+                'instance': 'test-server',
+                'device': '/dev/sda1',
+                'mountpoint': '/',
+                'fstype': 'ext4'
+            },
+            'annotations': {
+                'summary': 'Test storage alert for Slack integration',
+                'description': 'This is a test alert to verify Slack notifications are working correctly.'
+            },
+            'startsAt': datetime.now().isoformat(),
+            'generatorURL': 'http://localhost:9090/test'
+        }
+        
+        # Send to Slack
+        slack_sent = send_alert_to_slack(test_alert)
+        
+        # Store in database
+        alert_id = alert_store.store_alert(test_alert, {'success': False, 'error': 'Test alert - no JIRA ticket created'})
+        
+        return jsonify({
+            'message': 'Test alert processed',
+            'slack_sent': slack_sent,
+            'alert_id': alert_id,
+            'test_alert': test_alert
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error testing Slack integration: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': 'Failed to test Slack integration',
+            'details': str(e)
+        }), 500
 
 @app.route('/', methods=['GET'])
 def home():
