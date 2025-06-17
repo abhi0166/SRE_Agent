@@ -119,19 +119,24 @@ def handle_alert():
         # Create JIRA ticket
         result = jira_client.create_ticket(jira_data)
         
+        # Store alert in database regardless of JIRA result
+        alert_id = alert_store.store_alert(alert_data, result)
+        
         if result['success']:
-            logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}")
+            logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")
             return jsonify({
                 'message': 'JIRA ticket created successfully',
                 'ticket_key': result['ticket_key'],
-                'ticket_url': result['ticket_url']
+                'ticket_url': result['ticket_url'],
+                'alert_id': alert_id
             }), 200
         else:
-            logger.error(f"Failed to create JIRA ticket: {result['error']}")
+            logger.error(f"Failed to create JIRA ticket: {result['error']}, but stored alert: {alert_id}")
             return jsonify({
-                'error': 'Failed to create JIRA ticket',
-                'details': result['error']
-            }), 500
+                'message': 'Alert processed and stored',
+                'alert_id': alert_id,
+                'jira_error': result['error']
+            }), 200
             
     except Exception as e:
         logger.error(f"Error processing webhook: {str(e)}", exc_info=True)
@@ -148,7 +153,8 @@ def health_check():
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
-        'jira_configured': jira_client.is_configured()
+        'jira_configured': jira_client.is_configured(),
+        'database_connected': alert_store.is_connected()
     }), 200
 
 @app.route('/', methods=['GET'])
@@ -237,8 +243,126 @@ def test_webhook():
         return jsonify({
             'message': 'Test endpoint - POST to this URL to simulate an alert',
             'sample_alert': test_alert_data,
-            'jira_configured': jira_client.is_configured()
+            'jira_configured': jira_client.is_configured(),
+            'database_connected': alert_store.is_connected()
         })
+
+# Database API endpoints
+@app.route('/api/alerts', methods=['GET'])
+def get_alerts():
+    """Get stored alerts from database."""
+    try:
+        limit = int(request.args.get('limit', 50))
+        severity = request.args.get('severity')
+        status = request.args.get('status')
+        
+        alerts = alert_store.get_alerts(limit=limit, severity=severity, status=status)
+        
+        return jsonify({
+            'alerts': alerts,
+            'count': len(alerts),
+            'filters': {
+                'limit': limit,
+                'severity': severity,
+                'status': status
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving alerts: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alerts/<alert_id>', methods=['GET'])
+def get_alert(alert_id):
+    """Get specific alert by ID."""
+    try:
+        alert = alert_store.get_alert_by_id(alert_id)
+        if alert:
+            history = alert_store.get_alert_history(alert_id)
+            return jsonify({
+                'alert': alert,
+                'history': history
+            })
+        else:
+            return jsonify({'error': 'Alert not found'}), 404
+    except Exception as e:
+        logger.error(f"Error retrieving alert {alert_id}: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alerts/<alert_id>/status', methods=['PUT'])
+def update_alert_status(alert_id):
+    """Update alert status."""
+    try:
+        data = request.get_json()
+        status = data.get('status')
+        metadata = data.get('metadata', {})
+        
+        if not status:
+            return jsonify({'error': 'Status is required'}), 400
+        
+        success = alert_store.update_alert_status(alert_id, status, metadata)
+        if success:
+            return jsonify({'message': 'Alert status updated successfully'})
+        else:
+            return jsonify({'error': 'Failed to update alert status'}), 500
+    except Exception as e:
+        logger.error(f"Error updating alert status: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stats', methods=['GET'])
+def get_alert_stats():
+    """Get alert statistics."""
+    try:
+        stats = alert_store.get_alert_stats()
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"Error retrieving stats: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/metrics', methods=['GET'])
+def get_system_metrics():
+    """Get stored system metrics."""
+    try:
+        hours = int(request.args.get('hours', 24))
+        hostname = request.args.get('hostname')
+        
+        metrics = alert_store.get_system_metrics(hours=hours, hostname=hostname)
+        
+        return jsonify({
+            'metrics': metrics,
+            'count': len(metrics),
+            'filters': {
+                'hours': hours,
+                'hostname': hostname
+            }
+        })
+    except Exception as e:
+        logger.error(f"Error retrieving metrics: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/database/status', methods=['GET'])
+def get_database_status():
+    """Get database connection status and basic info."""
+    try:
+        if alert_store.is_connected():
+            stats = alert_store.get_alert_stats()
+            return jsonify({
+                'connected': True,
+                'database': alert_store.database_name,
+                'collections': {
+                    'alerts': stats.get('total_alerts', 0),
+                    'jira_tickets': stats.get('jira_tickets', 0),
+                    'recent_24h': stats.get('recent_24h', 0)
+                },
+                'stats': stats
+            })
+        else:
+            return jsonify({
+                'connected': False,
+                'error': 'Database not connected'
+            }), 503
+    except Exception as e:
+        logger.error(f"Error getting database status: {e}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Check if JIRA is properly configured
