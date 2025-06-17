@@ -283,52 +283,55 @@ class SlackNotifier:
         # Enterprise action center with buttons
         action_elements = []
         
-        if 'runbook_url' in annotations:
-            action_elements.append({
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "📖 Operations Runbook",
-                    "emoji": True
-                },
-                "url": annotations['runbook_url'],
-                "style": "primary"
-            })
+        # Operations Runbook - enhanced with alert-specific context
+        runbook_url = annotations.get('runbook_url', f"http://localhost:5000/runbooks/{alertname.lower()}")
+        action_elements.append({
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": "📖 Operations Runbook",
+                "emoji": True
+            },
+            "url": f"{runbook_url}?alert={alertname}&instance={instance}&severity={severity}",
+            "style": "primary"
+        })
         
-        if 'dashboard_url' in annotations:
-            action_elements.append({
-                "type": "button", 
-                "text": {
-                    "type": "plain_text",
-                    "text": "📊 Executive Dashboard",
-                    "emoji": True
-                },
-                "url": annotations['dashboard_url']
-            })
+        # Executive Dashboard - with filtered view for this alert
+        dashboard_url = annotations.get('dashboard_url', f"http://localhost:3000/device/{labels.get('device', 'overview')}")
+        action_elements.append({
+            "type": "button", 
+            "text": {
+                "type": "plain_text",
+                "text": "📊 Storage Dashboard",
+                "emoji": True
+            },
+            "url": f"{dashboard_url}?filter={alertname}&instance={instance}"
+        })
             
-        if alert_info.get('generatorURL'):
-            action_elements.append({
-                "type": "button",
-                "text": {
-                    "type": "plain_text", 
-                    "text": "📈 Real-time Metrics",
-                    "emoji": True
-                },
-                "url": alert_info['generatorURL']
-            })
+        # Real-time Metrics - direct link to specific device/metric
+        metrics_url = alert_info.get('generatorURL', f"http://localhost:3000")
+        action_elements.append({
+            "type": "button",
+            "text": {
+                "type": "plain_text", 
+                "text": "📈 Live Metrics",
+                "emoji": True
+            },
+            "url": f"{metrics_url}?alert_id={alert_id}"
+        })
         
-        # Add escalation button for critical alerts
-        if severity.lower() == 'critical':
-            action_elements.append({
-                "type": "button",
-                "text": {
-                    "type": "plain_text",
-                    "text": "🚨 Escalate to On-Call",
-                    "emoji": True
-                },
-                "style": "danger",
-                "url": "https://company.pagerduty.com/incidents/new"
-            })
+        # On-Call JIRA Ticket Creation - always available for immediate escalation
+        jira_create_url = f"http://localhost:5000/create-jira-ticket"
+        action_elements.append({
+            "type": "button",
+            "text": {
+                "type": "plain_text",
+                "text": "🎫 Create JIRA Ticket",
+                "emoji": True
+            },
+            "url": f"{jira_create_url}?alert_id={alert_id}&alertname={alertname}&severity={severity}&instance={instance}",
+            "style": "danger" if severity.lower() == 'critical' else "default"
+        })
         
         if action_elements:
             blocks.append({

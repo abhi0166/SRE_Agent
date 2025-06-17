@@ -470,6 +470,246 @@ if __name__ == '__main__':
     else:
         logger.info("JIRA client is configured and ready")
     
+@app.route('/create-jira-ticket')
+def create_jira_ticket():
+    """Create JIRA ticket on-demand from Slack alert button."""
+    try:
+        # Extract parameters from URL
+        alert_id = request.args.get('alert_id', 'unknown')
+        alertname = request.args.get('alertname', 'Storage Alert')
+        severity = request.args.get('severity', 'unknown')
+        instance = request.args.get('instance', 'unknown')
+        
+        # Retrieve full alert details from database
+        alert_details = None
+        if alert_id != 'unknown':
+            alert_details = alert_store.get_alert_by_id(alert_id)
+        
+        # Check if JIRA is configured
+        if not jira_client.is_configured():
+            return f"""
+            <html>
+            <head><title>JIRA Configuration Required</title></head>
+            <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+                <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #d73502;">🔧 JIRA Configuration Required</h2>
+                    <p>To create JIRA tickets automatically, please configure the following environment variables:</p>
+                    <ul>
+                        <li><strong>JIRA_URL</strong> - Your JIRA instance URL</li>
+                        <li><strong>JIRA_USERNAME</strong> - JIRA username or email</li>
+                        <li><strong>JIRA_API_TOKEN</strong> - JIRA API token</li>
+                        <li><strong>JIRA_PROJECT_KEY</strong> - Project key (e.g., OPS, INFRA)</li>
+                    </ul>
+                    <h3>Alert Details:</h3>
+                    <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; font-family: monospace;">
+                        <strong>Alert:</strong> {alertname}<br>
+                        <strong>Severity:</strong> {severity}<br>
+                        <strong>Instance:</strong> {instance}<br>
+                        <strong>Alert ID:</strong> {alert_id}
+                    </div>
+                    <p style="margin-top: 20px;">
+                        <a href="http://localhost:3000" style="background: #0099ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
+        
+        # Format alert data for JIRA ticket creation
+        if alert_details:
+            jira_data = format_alert_for_jira({'alerts': [alert_details]})
+        else:
+            # Create basic ticket from URL parameters
+            jira_data = {
+                'summary': f"{alertname} - {severity.upper()} on {instance}",
+                'description': f"Alert escalated from Slack monitoring system.\n\nAlert: {alertname}\nSeverity: {severity}\nInstance: {instance}\nAlert ID: {alert_id}\n\nThis ticket was created automatically via on-call escalation.",
+                'labels': ['storage-monitoring', 'automated', severity.lower()],
+                'priority': 'High' if severity.lower() == 'critical' else 'Medium'
+            }
+        
+        # Create JIRA ticket
+        jira_result = jira_client.create_ticket(jira_data)
+        
+        if jira_result.get('success'):
+            ticket_key = jira_result.get('ticket_key', 'Unknown')
+            ticket_url = f"{jira_client.base_url}/browse/{ticket_key}"
+            
+            # Update alert with JIRA ticket information
+            if alert_id != 'unknown':
+                alert_store.update_alert_status(
+                    alert_id, 
+                    'escalated', 
+                    {'jira_ticket': ticket_key, 'escalated_at': datetime.now().isoformat()}
+                )
+            
+            return f"""
+            <html>
+            <head><title>JIRA Ticket Created</title></head>
+            <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+                <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #28a745;">✅ JIRA Ticket Created Successfully</h2>
+                    <div style="background: #d4edda; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                        <strong>Ticket:</strong> <a href="{ticket_url}" target="_blank">{ticket_key}</a><br>
+                        <strong>Alert:</strong> {alertname}<br>
+                        <strong>Severity:</strong> {severity}<br>
+                        <strong>Instance:</strong> {instance}
+                    </div>
+                    <p>The alert has been escalated and assigned to the operations team.</p>
+                    <p>
+                        <a href="{ticket_url}" target="_blank" style="background: #0099ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-right: 10px;">View JIRA Ticket</a>
+                        <a href="http://localhost:3000" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
+        else:
+            error_msg = jira_result.get('error', 'Unknown error occurred')
+            return f"""
+            <html>
+            <head><title>JIRA Ticket Creation Failed</title></head>
+            <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+                <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #d73502;">❌ JIRA Ticket Creation Failed</h2>
+                    <div style="background: #f8d7da; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                        <strong>Error:</strong> {error_msg}<br>
+                        <strong>Alert:</strong> {alertname}<br>
+                        <strong>Severity:</strong> {severity}<br>
+                        <strong>Instance:</strong> {instance}
+                    </div>
+                    <p>Please contact your system administrator or create the ticket manually.</p>
+                    <p>
+                        <a href="http://localhost:3000" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
+            
+    except Exception as e:
+        logger.error(f"Error creating JIRA ticket: {str(e)}")
+        return f"""
+        <html>
+        <head><title>Error</title></head>
+        <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+            <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                <h2 style="color: #d73502;">❌ System Error</h2>
+                <p>An unexpected error occurred: {str(e)}</p>
+                <p>
+                    <a href="http://localhost:3000" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
+                </p>
+            </div>
+        </body>
+        </html>
+        """, 500
+
+@app.route('/runbooks/<alertname>')
+def get_runbook(alertname):
+    """Display runbook for specific alert type."""
+    alert = request.args.get('alert', alertname)
+    instance = request.args.get('instance', 'unknown')
+    severity = request.args.get('severity', 'unknown')
+    
+    # Runbook templates based on alert type
+    runbooks = {
+        'diskspacecritical': {
+            'title': 'Disk Space Critical Response',
+            'steps': [
+                '1. Immediately check disk usage: df -h',
+                '2. Identify largest files/directories: du -sh /* | sort -hr',
+                '3. Clear temporary files and logs if safe',
+                '4. Consider log rotation or archival',
+                '5. Expand storage if necessary',
+                '6. Monitor until usage drops below 85%'
+            ],
+            'commands': [
+                'df -h',
+                'du -sh /* | sort -hr | head -10',
+                'find /var/log -name "*.log" -size +100M',
+                'journalctl --disk-usage'
+            ]
+        },
+        'inodeusage': {
+            'title': 'Inode Exhaustion Response',
+            'steps': [
+                '1. Check inode usage: df -i',
+                '2. Find directories with many files: find / -xdev -type f | cut -d "/" -f 2 | sort | uniq -c | sort -n',
+                '3. Clean up temporary files',
+                '4. Remove unnecessary small files',
+                '5. Consider filesystem restructuring'
+            ],
+            'commands': [
+                'df -i',
+                'find /tmp -type f | wc -l',
+                'find /var/tmp -type f | wc -l'
+            ]
+        },
+        'highsystemload': {
+            'title': 'High System Load Response',
+            'steps': [
+                '1. Check current load: uptime',
+                '2. Identify resource-heavy processes: top',
+                '3. Check I/O wait: iostat 1 5',
+                '4. Monitor disk activity: iotop',
+                '5. Consider process optimization or scaling'
+            ],
+            'commands': [
+                'uptime',
+                'top -n 1',
+                'iostat 1 5',
+                'ps aux --sort=-%cpu | head -10'
+            ]
+        }
+    }
+    
+    runbook = runbooks.get(alertname.lower(), {
+        'title': f'{alert} Response Guide',
+        'steps': [
+            '1. Assess the current situation',
+            '2. Check system logs for related errors',
+            '3. Apply appropriate remediation steps',
+            '4. Monitor system after changes',
+            '5. Document actions taken'
+        ],
+        'commands': [
+            'systemctl status',
+            'journalctl -n 50',
+            'dmesg | tail -20'
+        ]
+    })
+    
+    return f"""
+    <html>
+    <head><title>{runbook['title']}</title></head>
+    <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+        <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <h1 style="color: #333;">📖 {runbook['title']}</h1>
+            <div style="background: #e3f2fd; padding: 15px; border-radius: 4px; margin: 20px 0;">
+                <strong>Alert:</strong> {alert}<br>
+                <strong>Instance:</strong> {instance}<br>
+                <strong>Severity:</strong> {severity}
+            </div>
+            
+            <h2>Response Steps:</h2>
+            <ol>
+                {''.join(f'<li style="margin: 10px 0;">{step}</li>' for step in runbook['steps'])}
+            </ol>
+            
+            <h2>Diagnostic Commands:</h2>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 4px; font-family: monospace;">
+                {'<br>'.join(f'$ {cmd}' for cmd in runbook['commands'])}
+            </div>
+            
+            <p style="margin-top: 30px;">
+                <a href="http://localhost:3000" style="background: #0099ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-right: 10px;">Return to Dashboard</a>
+                <a href="http://localhost:5000/create-jira-ticket?alertname={alert}&severity={severity}&instance={instance}" style="background: #d73502; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Create JIRA Ticket</a>
+            </p>
+        </div>
+    </body>
+    </html>
+    """
+
+if __name__ == '__main__':
     # Start the Flask server
     logger.info("Starting webhook server on 0.0.0.0:5000")
     app.run(host='0.0.0.0', port=5000, debug=False)
