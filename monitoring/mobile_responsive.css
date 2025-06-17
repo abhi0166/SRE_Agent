@@ -1,0 +1,154 @@
+/* Mobile-first responsive design for professional dashboard */
+
+/* Enhanced Mobile Optimizations */
+@media (max-width: 480px) {
+    .dashboard-container {
+        padding: 12px;
+    }
+    
+    .header {
+        padding: 16px;
+        margin-bottom: 16px;
+    }
+    
+    .header-title h1 {
+        font-size: 22px;
+    }
+    
+    .grid {
+        gap: 16px;
+    }
+    
+    .grid-4 {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .card {
+        padding: 16px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+    
+    .alert-item {
+        padding: 12px;
+        margin-bottom: 8px;
+    }
+    
+    .alert-title {
+        font-size: 14px;
+    }
+    
+    .endpoint-item {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+}
+
+/* Tablet optimizations */
+@media (min-width: 481px) and (max-width: 768px) {
+    .grid-4 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Desktop enhancements */
+@media (min-width: 1200px) {
+    .dashboard-container {
+        max-width: 1600px;
+    }
+    
+    .grid-2 {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .grid-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(5, 1fr);
+    }
+}
+
+/* Touch-friendly interactions */
+@media (hover: none) and (pointer: coarse) {
+    .card {
+        transition: none;
+    }
+    
+    .card:hover {
+        transform: none;
+    }
+    
+    .alert-item:hover {
+        transform: none;
+    }
+    
+    .endpoint-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --border-radius: 8px;
+        --shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .card {
+        border: 2px solid var(--gray-300);
+    }
+    
+    .alert-item {
+        border: 1px solid var(--gray-400);
+    }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+    
+    .spinning {
+        animation: none !important;
+    }
+}
+
+/* Print styles */
+@media print {
+    body {
+        background: white;
+        color: black;
+    }
+    
+    .header,
+    .card {
+        background: white;
+        box-shadow: none;
+        border: 1px solid #ccc;
+    }
+    
+    .refresh-indicator,
+    .endpoint-list {
+        display: none;
+    }
+}
