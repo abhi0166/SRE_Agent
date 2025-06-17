@@ -26,3 +26,7 @@ waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "pip3 install flask requests python-dotenv && echo \"Dependencies installed successfully\""]
+
+[[ports]]
+localPort = 5000
+externalPort = 80

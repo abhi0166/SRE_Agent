@@ -3,11 +3,7 @@
 Main entry point for the disk monitoring webhook server.
 """
 
-import sys
-import os
+from app import app
 
-# Change to webhook_server directory
-os.chdir('webhook_server')
-
-# Import and run the Flask app
-exec(open('app.py').read())
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False)
