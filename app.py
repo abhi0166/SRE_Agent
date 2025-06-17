@@ -151,8 +151,9 @@ def format_alert_for_jira(alert_data):
     severity = primary_alert.get('labels', {}).get('severity', 'unknown')
     instance = primary_alert.get('labels', {}).get('instance', 'unknown')
     
-    # Create summary
-    summary = f"[{severity.upper()}] {alert_name} - {instance}"
+    # Create descriptive summary with timestamp for uniqueness
+    timestamp = datetime.now().strftime('%m/%d %H:%M')
+    summary = f"Storage Alert: {alert_name} ({severity.upper()}) - {instance} [{timestamp}]"
     
     # Create detailed description
     description_parts = [
