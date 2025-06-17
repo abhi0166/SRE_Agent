@@ -11,7 +11,7 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
 from database.sqlite_store import SQLiteAlertStore
-from slack_integration import send_alert_to_slack, get_slack_notifier
+from slack_integration_enterprise import send_enterprise_alert_to_slack
 
 # Load environment variables
 load_dotenv()

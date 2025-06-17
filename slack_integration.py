@@ -55,12 +55,33 @@ class SlackNotifier:
     def format_storage_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
         """Format storage alert data for Slack message."""
         
-        # Extract alert information
-        alertname = alert_data.get('alertname', 'Storage Alert')
-        severity = alert_data.get('labels', {}).get('severity', 'unknown')
-        instance = alert_data.get('labels', {}).get('instance', 'unknown')
-        description = alert_data.get('annotations', {}).get('description', 'No description available')
-        summary = alert_data.get('annotations', {}).get('summary', '')
+        # Handle both direct alert data and wrapped AlertManager data
+        alert_info = alert_data
+        if 'alerts' in alert_data and len(alert_data['alerts']) > 0:
+            # AlertManager format - extract first alert
+            alert_info = alert_data['alerts'][0]
+            common_labels = alert_data.get('commonLabels', {})
+            common_annotations = alert_data.get('commonAnnotations', {})
+            
+            # Merge common data with specific alert data
+            labels = {**common_labels, **alert_info.get('labels', {})}
+            annotations = {**common_annotations, **alert_info.get('annotations', {})}
+            
+            alert_info = {
+                **alert_info,
+                'labels': labels,
+                'annotations': annotations
+            }
+        
+        # Extract alert information with fallbacks
+        alertname = alert_info.get('alertname', alert_data.get('alertname', 'Storage Alert'))
+        labels = alert_info.get('labels', {})
+        annotations = alert_info.get('annotations', {})
+        
+        severity = labels.get('severity', 'unknown')
+        instance = labels.get('instance', 'unknown')
+        description = annotations.get('description', 'No description available')
+        summary = annotations.get('summary', alertname)
         
         # Determine emoji and color based on severity
         severity_config = {
@@ -124,8 +145,7 @@ class SlackNotifier:
             })
         
         # Add device/filesystem specific information if available
-        labels = alert_data.get('labels', {})
-        if 'device' in labels or 'fstype' in labels or 'mountpoint' in labels:
+        if 'device' in labels or 'fstype' in labels or 'mountpoint' in labels or 'pool' in labels:
             device_info = []
             if 'device' in labels:
                 device_info.append(f"*Device:* {labels['device']}")
@@ -133,6 +153,10 @@ class SlackNotifier:
                 device_info.append(f"*Mount:* {labels['mountpoint']}")
             if 'fstype' in labels:
                 device_info.append(f"*Filesystem:* {labels['fstype']}")
+            if 'pool' in labels:
+                device_info.append(f"*Storage Pool:* {labels['pool']}")
+            if 'alerttype' in labels:
+                device_info.append(f"*Type:* {labels['alerttype'].title()}")
             
             if device_info:
                 blocks.append({
@@ -142,6 +166,24 @@ class SlackNotifier:
                         "text": "\n".join(device_info)
                     }
                 })
+        
+        # Add runbook and dashboard links if available
+        links = []
+        if 'runbook_url' in annotations:
+            links.append(f"<{annotations['runbook_url']}|Runbook>")
+        if 'dashboard_url' in annotations:
+            links.append(f"<{annotations['dashboard_url']}|Dashboard>")
+        if alert_info.get('generatorURL'):
+            links.append(f"<{alert_info['generatorURL']}|Metrics>")
+            
+        if links:
+            blocks.append({
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"*Quick Links:* {' | '.join(links)}"
+                }
+            })
         
         # Add divider
         blocks.append({"type": "divider"})
