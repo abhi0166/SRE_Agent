@@ -1,0 +1,75 @@
+Here’s the requirements document in a professional format suitable for inclusion in a system design or project proposal:
+
+⸻
+
+📄 Requirements Document: Disk Monitoring & JIRA Ticketing System
+
+Project Name:
+
+MacBook Disk Monitoring and Automated JIRA Ticketing System
+
+Objective:
+
+To build a fully open-source, local monitoring solution on macOS that tracks disk health and storage usage. Upon crossing specified thresholds (e.g., low disk space or SMART health failure), the system must automatically raise a JIRA ticket assigned to the Datacenter Ops team.
+
+⸻
+
+1. Functional Requirements
+
+ID	Requirement Description
+FR1	The system must monitor disk space usage on all mounted filesystems.
+FR2	The system must monitor SMART disk health metrics using smartmontools.
+FR3	The system must trigger alerts when disk usage exceeds a configurable threshold (e.g., 90%).
+FR4	The system must trigger alerts if SMART status indicates failure or pre-failure.
+FR5	Alerts must be forwarded to a locally running webhook endpoint.
+FR6	The webhook must parse alert data and format it into a valid JIRA issue.
+FR7	A new JIRA issue must be created automatically when a critical alert is received.
+FR8	The JIRA ticket must be created in a specified project (e.g., “DCOPS”).
+FR9	The JIRA ticket must be automatically assigned to a default assignee (e.g., “datacenter.ops”).
+FR10	All tools used must be open-source or free-tier solutions.
+FR11	The system must work locally on macOS without requiring external agents.
+
+
+⸻
+
+2. Non-Functional Requirements
+
+ID	Requirement Description
+NFR1	The system must use only open-source or free-tier tools and APIs.
+NFR2	The solution must be portable to Linux and cloud-native environments later.
+NFR3	Alert thresholds must be configurable and tunable.
+NFR4	JIRA API tokens and sensitive data must be stored securely (e.g., via environment variables).
+NFR5	Alerts must include a delay window (for: X mins) to avoid flapping.
+NFR6	The system must log webhook requests and ticket creation events for debugging.
+NFR7	The webhook server must return HTTP 200 on successful ticket creation and log errors.
+NFR8	System must support easy local testing and validation workflows.
+
+
+⸻
+
+3. Features to Be Implemented
+
+ID	Feature Description
+F1	Prometheus configuration for local metric scraping (Node Exporter)
+F2	Node Exporter setup for exposing disk space and file system metrics
+F3	smartmontools installation and periodic health check integration
+F4	Alertmanager setup to forward disk alerts to a custom webhook
+F5	Flask-based Python server to receive and parse Alertmanager alerts
+F6	JIRA integration via REST API to create issues automatically
+F7	.env configuration file for storing sensitive credentials
+F8	Support for dynamic JIRA fields: summary, description, assignee, project
+F9	Simple logs printed to console for success/failure feedback
+F10	Example Prometheus alert rules and SMART command integration for extensibility
+
+
+⸻
+
+4. Constraints
+	•	Must run entirely on a single MacBook.
+	•	JIRA instance must be Atlassian Cloud with API access enabled.
+	•	No paid tools or SaaS services may be used in the pipeline.
+	•	The system must not rely on external monitoring infrastructure or VPNs.
+
+⸻
+
+Let me know if you’d like the same in PDF or Markdown format.
