@@ -13,27 +13,16 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Setup and Install Dependencies"
-
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "disk_monitoring_setup"
+args = "Webhook Server"
 
 [[workflows.workflow]]
-name = "Setup and Install Dependencies"
+name = "Webhook Server"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "pip3 install flask requests python-dotenv && echo \"Dependencies installed successfully\""
-
-[[workflows.workflow]]
-name = "disk_monitoring_setup"
-author = "agent"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "chmod +x scripts/setup.sh && ./scripts/setup.sh"
+args = "python run.py"
+waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "pip3 install flask requests python-dotenv && echo \"Dependencies installed successfully\""]
