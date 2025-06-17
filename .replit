@@ -20,6 +20,10 @@ args = "Webhook Server"
 task = "workflow.run"
 args = "Enterprise Storage Dashboard"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Continuous Storage Monitor"
+
 [[workflows.workflow]]
 name = "Webhook Server"
 author = "agent"
@@ -37,6 +41,14 @@ author = "agent"
 task = "shell.exec"
 args = "python monitoring/enterprise_storage_dashboard.py"
 waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Continuous Storage Monitor"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd monitoring && python storage_alert_generator.py --interval 60"
 
 [deployment]
 run = ["sh", "-c", "pip3 install flask requests python-dotenv && echo \"Dependencies installed successfully\""]

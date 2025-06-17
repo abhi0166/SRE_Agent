@@ -219,6 +219,41 @@ def test_slack():
             'details': str(e)
         }), 500
 
+@app.route('/api/alerts/live', methods=['GET'])
+def get_live_alerts():
+    """Get live alert stream for real-time monitoring."""
+    try:
+        # Get recent alerts from last 5 minutes
+        alerts = alert_store.get_alerts(limit=20)
+        
+        # Filter for recent alerts (last 5 minutes)
+        from datetime import datetime, timedelta
+        five_minutes_ago = datetime.now() - timedelta(minutes=5)
+        
+        recent_alerts = []
+        for alert in alerts:
+            try:
+                alert_time = datetime.fromisoformat(alert['timestamp'].replace(' ', 'T'))
+                if alert_time >= five_minutes_ago:
+                    recent_alerts.append(alert)
+            except:
+                # Include alerts with unparseable timestamps
+                recent_alerts.append(alert)
+        
+        return jsonify({
+            'alerts': recent_alerts[:10],  # Limit to 10 most recent
+            'total_recent': len(recent_alerts),
+            'monitoring_active': True,
+            'last_updated': datetime.now().isoformat()
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting live alerts: {str(e)}", exc_info=True)
+        return jsonify({
+            'error': 'Failed to get live alerts',
+            'details': str(e)
+        }), 500
+
 @app.route('/', methods=['GET'])
 def home():
     """
