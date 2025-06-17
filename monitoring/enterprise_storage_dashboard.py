@@ -316,22 +316,162 @@ def enterprise_storage_dashboard():
             margin-top: var(--space-xs);
         }
         
-        .efficiency-badge {
+        .efficiency-mascot {
             display: flex;
             align-items: center;
-            gap: var(--space-sm);
-            padding: var(--space-md) var(--space-lg);
-            background: var(--gradient-success);
+            padding: var(--space-lg);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: var(--radius-xl);
-            color: white;
-            font-weight: 700;
-            font-size: 1.125rem;
             box-shadow: var(--shadow-lg);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        .mascot-container {
+            display: flex;
+            align-items: center;
+            gap: var(--space-lg);
+        }
+        
+        .mascot-face {
+            width: 80px;
+            height: 80px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            animation: mascotBounce 2s ease-in-out infinite;
+        }
+        
+        .mascot-eyes {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .eye {
+            width: 12px;
+            height: 12px;
+            background: #2d3748;
+            border-radius: 50%;
+            position: relative;
+            animation: blink 3s infinite;
+        }
+        
+        .pupil {
+            width: 6px;
+            height: 6px;
+            background: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: eyeMovement 4s ease-in-out infinite;
+        }
+        
+        .mascot-mouth {
+            width: 16px;
+            height: 8px;
+            border-radius: 0 0 16px 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .efficiency-display {
+            text-align: left;
         }
         
         .efficiency-score {
-            font-size: 1.5rem;
+            font-size: 2rem;
             font-weight: 900;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .efficiency-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            font-weight: 600;
+        }
+        
+        /* Mascot animations */
+        @keyframes mascotBounce {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-3px); }
+        }
+        
+        @keyframes blink {
+            0%, 90%, 100% { transform: scaleY(1); }
+            95% { transform: scaleY(0.1); }
+        }
+        
+        @keyframes eyeMovement {
+            0%, 100% { transform: translate(-50%, -50%); }
+            25% { transform: translate(-40%, -50%); }
+            50% { transform: translate(-60%, -50%); }
+            75% { transform: translate(-50%, -40%); }
+        }
+        
+        /* Happy mascot (high efficiency) */
+        .mascot-happy .mascot-mouth {
+            background: #48bb78;
+            animation: smile 1s ease-in-out infinite alternate;
+        }
+        
+        .mascot-happy .mascot-face {
+            animation: mascotBounce 1.5s ease-in-out infinite, happyGlow 2s ease-in-out infinite;
+        }
+        
+        @keyframes smile {
+            0% { width: 16px; }
+            100% { width: 20px; }
+        }
+        
+        @keyframes happyGlow {
+            0%, 100% { box-shadow: 0 0 10px rgba(72, 187, 120, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(72, 187, 120, 0.6); }
+        }
+        
+        /* Warning mascot (medium efficiency) */
+        .mascot-warning .mascot-mouth {
+            background: #ed8936;
+            width: 14px;
+            height: 4px;
+            border-radius: 2px;
+        }
+        
+        .mascot-warning .mascot-face {
+            animation: mascotBounce 2.5s ease-in-out infinite;
+        }
+        
+        /* Concerned mascot (low efficiency) */
+        .mascot-concerned .mascot-mouth {
+            background: #f56565;
+            width: 12px;
+            height: 6px;
+            border-radius: 6px 6px 0 0;
+            transform: rotateX(180deg);
+        }
+        
+        .mascot-concerned .mascot-face {
+            animation: mascotWorried 1s ease-in-out infinite;
+        }
+        
+        .mascot-concerned .eye {
+            animation: blink 1.5s infinite, worried 2s ease-in-out infinite;
+        }
+        
+        @keyframes mascotWorried {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-2px) rotate(-2deg); }
+        }
+        
+        @keyframes worried {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(0.8); }
         }
         
         /* Grid Layouts */
@@ -833,15 +973,27 @@ def enterprise_storage_dashboard():
                         <i class="fas fa-hdd card-icon"></i>
                         <div>
                             <h1>Enterprise Storage Analytics</h1>
-                            <div class="header-subtitle">Principal Architect Level - Comprehensive Storage Intelligence</div>
+                            <div class="header-subtitle">Comprehensive Storage Intelligence</div>
                         </div>
                     </div>
                 </div>
-                <div class="efficiency-badge">
-                    <i class="fas fa-chart-line"></i>
-                    <div>
-                        <div class="efficiency-score">{{ efficiency_score }}%</div>
-                        <div>Storage Efficiency</div>
+                <div class="efficiency-mascot" id="efficiencyMascot">
+                    <div class="mascot-container">
+                        <div class="mascot-face" id="mascotFace">
+                            <div class="mascot-eyes">
+                                <div class="eye left-eye">
+                                    <div class="pupil"></div>
+                                </div>
+                                <div class="eye right-eye">
+                                    <div class="pupil"></div>
+                                </div>
+                            </div>
+                            <div class="mascot-mouth" id="mascotMouth"></div>
+                        </div>
+                        <div class="efficiency-display">
+                            <div class="efficiency-score">{{ efficiency_score }}%</div>
+                            <div class="efficiency-label">Storage Health</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1197,6 +1349,83 @@ def enterprise_storage_dashboard():
     </div>
 
     <script>
+        // Mascot animation based on efficiency score
+        function updateMascotExpression() {
+            const mascot = document.getElementById('efficiencyMascot');
+            const efficiencyScore = {{ efficiency_score }};
+            
+            // Remove existing mood classes
+            mascot.classList.remove('mascot-happy', 'mascot-warning', 'mascot-concerned');
+            
+            // Add mood based on efficiency score
+            if (efficiencyScore >= 80) {
+                mascot.classList.add('mascot-happy');
+            } else if (efficiencyScore >= 60) {
+                mascot.classList.add('mascot-warning');
+            } else {
+                mascot.classList.add('mascot-concerned');
+            }
+        }
+        
+        // Initialize mascot expression
+        updateMascotExpression();
+        
+        // Make mascot interactive
+        document.getElementById('efficiencyMascot').addEventListener('click', function() {
+            const mascot = this;
+            
+            // Temporarily add excited animation
+            mascot.style.transform = 'scale(1.1)';
+            
+            // Create floating message
+            const message = document.createElement('div');
+            message.style.cssText = `
+                position: absolute;
+                top: -40px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 12px;
+                font-weight: 600;
+                z-index: 1000;
+                animation: fadeInOut 2s ease-in-out;
+            `;
+            
+            const score = {{ efficiency_score }};
+            if (score >= 80) {
+                message.textContent = 'Excellent storage health! 🚀';
+            } else if (score >= 60) {
+                message.textContent = 'Good performance, room for improvement!';
+            } else {
+                message.textContent = 'Storage needs attention!';
+            }
+            
+            this.style.position = 'relative';
+            this.appendChild(message);
+            
+            // Reset after animation
+            setTimeout(() => {
+                mascot.style.transform = 'scale(1)';
+                if (message.parentNode) {
+                    message.remove();
+                }
+            }, 2000);
+        });
+        
+        // Add floating message animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes fadeInOut {
+                0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+                50% { opacity: 1; transform: translateX(-50%) translateY(0); }
+                100% { opacity: 0; transform: translateX(-50%) translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+
         // Auto-refresh functionality
         setInterval(() => {
             window.location.reload();
