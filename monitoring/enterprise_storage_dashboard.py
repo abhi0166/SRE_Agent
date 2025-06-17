@@ -532,7 +532,34 @@ def enterprise_storage_dashboard():
         
         /* Ensure equal height for storage section cards */
         .grid-storage .card {
-            min-height: 600px;
+            height: 600px;
+            max-height: 600px;
+        }
+        
+        /* Scrollable content containers */
+        .scrollable-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: var(--space-sm);
+            margin-top: var(--space-md);
+        }
+        
+        .scrollable-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-track {
+            background: var(--bg-tertiary);
+            border-radius: 3px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-thumb {
+            background: var(--primary-light);
+            border-radius: 3px;
+        }
+        
+        .scrollable-content::-webkit-scrollbar-thumb:hover {
+            background: var(--primary);
         }
         
         .card::before {
@@ -1088,6 +1115,69 @@ def enterprise_storage_dashboard():
             </div>
         </div>
 
+        <!-- Storage Intelligence Summary -->
+        <div class="card" style="margin-bottom: var(--space-xl);">
+            <div class="card-header">
+                <div class="card-title">
+                    <i class="fas fa-brain card-icon"></i>
+                    Storage Intelligence Summary
+                </div>
+            </div>
+            
+            <div class="storage-metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--primary-light);">
+                        {{ storage_metrics.physical_layer.disk_devices|length if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices else 0 }}
+                    </div>
+                    <div class="metric-label">Storage Devices</div>
+                    <div class="metric-change change-positive">+2 this month</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--success);">
+                        {{ storage_metrics.filesystem_layer.filesystem_types|length if storage_metrics.filesystem_layer and storage_metrics.filesystem_layer.filesystem_types else 0 }}
+                    </div>
+                    <div class="metric-label">Filesystem Types</div>
+                    <div class="metric-change change-neutral">Stable</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--warning);">
+                        {% set total_capacity = 0 %}
+                        {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
+                            {% for device in storage_metrics.physical_layer.disk_devices %}
+                                {% set total_capacity = total_capacity + device.total %}
+                            {% endfor %}
+                        {% endif %}
+                        {{ format_bytes(total_capacity) }}
+                    </div>
+                    <div class="metric-label">Total Capacity</div>
+                    <div class="metric-change change-positive">Growing</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-value" style="color: var(--info);">
+                        {% set avg_utilization = 0 %}
+                        {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
+                            {% set device_count = storage_metrics.physical_layer.disk_devices|length %}
+                            {% if device_count > 0 %}
+                                {% set total_util = 0 %}
+                                {% for device in storage_metrics.physical_layer.disk_devices %}
+                                    {% set total_util = total_util + device.percent %}
+                                {% endfor %}
+                                {% set avg_utilization = total_util / device_count %}
+                            {% endif %}
+                        {% endif %}
+                        {{ "%.1f"|format(avg_utilization) }}%
+                    </div>
+                    <div class="metric-label">Avg Utilization</div>
+                    <div class="metric-change {{ 'change-negative' if avg_utilization > 80 else 'change-positive' }}">
+                        {{ 'High' if avg_utilization > 80 else 'Optimal' }}
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Storage Metrics Grid -->
         <div class="grid grid-storage">
             <!-- Physical Layer Metrics -->
@@ -1099,29 +1189,31 @@ def enterprise_storage_dashboard():
                     </div>
                 </div>
                 
-                {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
-                <div class="device-list">
-                    {% for device in storage_metrics.physical_layer.disk_devices %}
-                    <div class="device-item">
-                        <div class="device-info">
-                            <div class="device-name">{{ device.device }}</div>
-                            <div class="device-path">{{ device.mountpoint }} ({{ device.fstype }})</div>
-                        </div>
-                        <div class="device-metrics">
-                            <div class="device-usage" style="color: {{ '#ef4444' if device.percent > 90 else '#f59e0b' if device.percent > 80 else '#10b981' }}">
-                                {{ "%.1f"|format(device.percent) }}%
+                <div class="scrollable-content">
+                    {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
+                    <div class="device-list">
+                        {% for device in storage_metrics.physical_layer.disk_devices %}
+                        <div class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">{{ device.device }}</div>
+                                <div class="device-path">{{ device.mountpoint }} ({{ device.fstype }})</div>
                             </div>
-                            <div class="device-capacity">{{ format_bytes(device.used) }} / {{ format_bytes(device.total) }}</div>
+                            <div class="device-metrics">
+                                <div class="device-usage" style="color: {{ '#ef4444' if device.percent > 90 else '#f59e0b' if device.percent > 80 else '#10b981' }}">
+                                    {{ "%.1f"|format(device.percent) }}%
+                                </div>
+                                <div class="device-capacity">{{ format_bytes(device.used) }} / {{ format_bytes(device.total) }}</div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
-                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-hdd"></i>
+                        <p>No physical devices detected</p>
+                    </div>
+                    {% endif %}
                 </div>
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-hdd"></i>
-                    <p>No physical devices detected</p>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Performance Metrics -->
@@ -1133,67 +1225,69 @@ def enterprise_storage_dashboard():
                     </div>
                 </div>
                 
-                {% if storage_metrics.performance_layer %}
-                <div class="performance-grid">
-                    {% set io_stats = storage_metrics.performance_layer.get('system_io', {}) %}
-                    {% if io_stats.total_disk_io %}
-                    <div class="performance-indicator">
-                        <div class="performance-value" style="color: var(--primary-light);">
-                            {{ (io_stats.total_disk_io.read_count + io_stats.total_disk_io.write_count)|round|int }}
+                <div class="scrollable-content">
+                    {% if storage_metrics.performance_layer %}
+                    <div class="performance-grid">
+                        {% set io_stats = storage_metrics.performance_layer.get('system_io', {}) %}
+                        {% if io_stats.total_disk_io %}
+                        <div class="performance-indicator">
+                            <div class="performance-value" style="color: var(--primary-light);">
+                                {{ (io_stats.total_disk_io.read_count + io_stats.total_disk_io.write_count)|round|int }}
+                            </div>
+                            <div class="performance-label">Total IOPS</div>
                         </div>
-                        <div class="performance-label">Total IOPS</div>
+                        
+                        <div class="performance-indicator">
+                            <div class="performance-value" style="color: var(--success);">
+                                {{ format_bytes(io_stats.total_disk_io.read_bytes + io_stats.total_disk_io.write_bytes) }}
+                            </div>
+                            <div class="performance-label">Total I/O</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="performance-indicator">
+                            <div class="performance-value" style="color: var(--warning);">
+                                {{ "%.1f"|format(io_stats.get('io_wait', 0)) }}%
+                            </div>
+                            <div class="performance-label">I/O Wait</div>
+                        </div>
+                        
+                        <div class="performance-indicator">
+                            <div class="performance-value" style="color: var(--info);">
+                                {{ "%.1f"|format(io_stats.get('load_average', [0])[0]) }}
+                            </div>
+                            <div class="performance-label">Load Avg</div>
+                        </div>
                     </div>
                     
-                    <div class="performance-indicator">
-                        <div class="performance-value" style="color: var(--success);">
-                            {{ format_bytes(io_stats.total_disk_io.read_bytes + io_stats.total_disk_io.write_bytes) }}
+                    <!-- Latency Chart -->
+                    {% if performance_trends.high_latency_devices %}
+                    <div style="margin-top: var(--space-lg);">
+                        <h4 style="margin-bottom: var(--space-md); color: var(--text-secondary); font-size: 0.875rem; font-weight: 600;">High Latency Devices</h4>
+                        {% for device in performance_trends.high_latency_devices %}
+                        <div class="device-item">
+                            <div class="device-info">
+                                <div class="device-name">{{ device.device }}</div>
+                            </div>
+                            <div class="device-metrics">
+                                <div class="device-usage" style="color: var(--danger);">
+                                    R: {{ "%.1f"|format(device.read_latency) }}ms
+                                </div>
+                                <div class="device-capacity">
+                                    W: {{ "%.1f"|format(device.write_latency) }}ms
+                                </div>
+                            </div>
                         </div>
-                        <div class="performance-label">Total I/O</div>
+                        {% endfor %}
                     </div>
                     {% endif %}
-                    
-                    <div class="performance-indicator">
-                        <div class="performance-value" style="color: var(--warning);">
-                            {{ "%.1f"|format(io_stats.get('io_wait', 0)) }}%
-                        </div>
-                        <div class="performance-label">I/O Wait</div>
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>Performance data unavailable</p>
                     </div>
-                    
-                    <div class="performance-indicator">
-                        <div class="performance-value" style="color: var(--info);">
-                            {{ "%.1f"|format(io_stats.get('load_average', [0])[0]) }}
-                        </div>
-                        <div class="performance-label">Load Avg</div>
-                    </div>
+                    {% endif %}
                 </div>
-                
-                <!-- Latency Chart -->
-                {% if performance_trends.high_latency_devices %}
-                <div style="margin-top: var(--space-lg);">
-                    <h4 style="margin-bottom: var(--space-md); color: var(--text-secondary); font-size: 0.875rem; font-weight: 600;">High Latency Devices</h4>
-                    {% for device in performance_trends.high_latency_devices %}
-                    <div class="device-item">
-                        <div class="device-info">
-                            <div class="device-name">{{ device.device }}</div>
-                        </div>
-                        <div class="device-metrics">
-                            <div class="device-usage" style="color: var(--danger);">
-                                R: {{ "%.1f"|format(device.read_latency) }}ms
-                            </div>
-                            <div class="device-capacity">
-                                W: {{ "%.1f"|format(device.write_latency) }}ms
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-chart-line"></i>
-                    <p>Performance data unavailable</p>
-                </div>
-                {% endif %}
             </div>
 
             <!-- Capacity Planning -->
@@ -1205,28 +1299,30 @@ def enterprise_storage_dashboard():
                     </div>
                 </div>
                 
-                {% if storage_metrics.capacity_planning and storage_metrics.capacity_planning.storage_efficiency %}
-                {% for mountpoint, efficiency in storage_metrics.capacity_planning.storage_efficiency.items() %}
-                <div class="progress-container">
-                    <div class="progress-label">
-                        <span>{{ mountpoint }}</span>
-                        <span>{{ "%.1f"|format(efficiency.capacity_utilization) }}%</span>
+                <div class="scrollable-content">
+                    {% if storage_metrics.capacity_planning and storage_metrics.capacity_planning.storage_efficiency %}
+                    {% for mountpoint, efficiency in storage_metrics.capacity_planning.storage_efficiency.items() %}
+                    <div class="progress-container">
+                        <div class="progress-label">
+                            <span>{{ mountpoint }}</span>
+                            <span>{{ "%.1f"|format(efficiency.capacity_utilization) }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill {{ 'progress-danger' if efficiency.capacity_utilization > 90 else 'progress-warning' if efficiency.capacity_utilization > 80 else 'progress-success' }}" 
+                                 style="width: {{ efficiency.capacity_utilization }}%"></div>
+                        </div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-xs);">
+                            {{ format_bytes(efficiency.available_space) }} available of {{ format_bytes(efficiency.usable_capacity) }}
+                        </div>
                     </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill {{ 'progress-danger' if efficiency.capacity_utilization > 90 else 'progress-warning' if efficiency.capacity_utilization > 80 else 'progress-success' }}" 
-                             style="width: {{ efficiency.capacity_utilization }}%"></div>
+                    {% endfor %}
+                    {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-database"></i>
+                        <p>Capacity data unavailable</p>
                     </div>
-                    <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: var(--space-xs);">
-                        {{ format_bytes(efficiency.available_space) }} available of {{ format_bytes(efficiency.usable_capacity) }}
-                    </div>
+                    {% endif %}
                 </div>
-                {% endfor %}
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-database"></i>
-                    <p>Capacity data unavailable</p>
-                </div>
-                {% endif %}
             </div>
         </div>
 
@@ -1318,68 +1414,7 @@ def enterprise_storage_dashboard():
             </div>
         </div>
 
-        <!-- Storage Intelligence Summary -->
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">
-                    <i class="fas fa-brain card-icon"></i>
-                    Storage Intelligence Summary
-                </div>
-            </div>
-            
-            <div class="storage-metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-value" style="color: var(--primary-light);">
-                        {{ storage_metrics.physical_layer.disk_devices|length if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices else 0 }}
-                    </div>
-                    <div class="metric-label">Storage Devices</div>
-                    <div class="metric-change change-positive">+2 this month</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value" style="color: var(--success);">
-                        {{ storage_metrics.filesystem_layer.filesystem_types|length if storage_metrics.filesystem_layer and storage_metrics.filesystem_layer.filesystem_types else 0 }}
-                    </div>
-                    <div class="metric-label">Filesystem Types</div>
-                    <div class="metric-change change-neutral">Stable</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value" style="color: var(--warning);">
-                        {% set total_capacity = 0 %}
-                        {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
-                            {% for device in storage_metrics.physical_layer.disk_devices %}
-                                {% set total_capacity = total_capacity + device.total %}
-                            {% endfor %}
-                        {% endif %}
-                        {{ format_bytes(total_capacity) }}
-                    </div>
-                    <div class="metric-label">Total Capacity</div>
-                    <div class="metric-change change-positive">Growing</div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-value" style="color: var(--info);">
-                        {% set avg_utilization = 0 %}
-                        {% if storage_metrics.physical_layer and storage_metrics.physical_layer.disk_devices %}
-                            {% set device_count = storage_metrics.physical_layer.disk_devices|length %}
-                            {% if device_count > 0 %}
-                                {% set total_util = 0 %}
-                                {% for device in storage_metrics.physical_layer.disk_devices %}
-                                    {% set total_util = total_util + device.percent %}
-                                {% endfor %}
-                                {% set avg_utilization = total_util / device_count %}
-                            {% endif %}
-                        {% endif %}
-                        {{ "%.1f"|format(avg_utilization) }}%
-                    </div>
-                    <div class="metric-label">Avg Utilization</div>
-                    <div class="metric-change {{ 'change-negative' if avg_utilization > 80 else 'change-positive' }}">
-                        {{ 'High' if avg_utilization > 80 else 'Optimal' }}
-                    </div>
-                </div>
-            </div>
-        </div>
+
     </div>
 
     <script>
