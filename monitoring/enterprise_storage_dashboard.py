@@ -1159,11 +1159,255 @@ def enterprise_storage_dashboard():
             });
         });
 
-        // Storage metrics tooltips and interactions
+        // Interactive device clicks
+        document.querySelectorAll('.device-item').forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', function() {
+                const devicePath = this.querySelector('.device-path').textContent.split(' ')[0];
+                if (devicePath) {
+                    window.location.href = `/storage/device/${encodeURIComponent(devicePath)}`;
+                }
+            });
+        });
+
+        // Interactive metric cards
         document.querySelectorAll('.metric-card').forEach(card => {
+            card.style.cursor = 'pointer';
             card.addEventListener('click', function() {
-                // Could implement drill-down functionality here
-                console.log('Metric card clicked:', this.querySelector('.metric-label').textContent);
+                const label = this.querySelector('.metric-label').textContent;
+                console.log('Metric card clicked:', label);
+                
+                // Add visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1.02)';
+                }, 100);
+                
+                // Example drill-down actions
+                if (label.includes('Storage Devices')) {
+                    showDeviceModal();
+                } else if (label.includes('Filesystem')) {
+                    showFilesystemModal();
+                } else if (label.includes('Performance')) {
+                    showPerformanceModal();
+                }
+            });
+        });
+
+        // Interactive health items
+        document.querySelectorAll('.health-item').forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', function() {
+                const label = this.querySelector('.health-label').textContent;
+                showHealthDetails(label);
+            });
+        });
+
+        // Interactive progress bars for capacity planning
+        document.querySelectorAll('.progress-container').forEach(container => {
+            const progressBar = container.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.cursor = 'pointer';
+                progressBar.addEventListener('click', function() {
+                    const label = container.querySelector('.progress-label span').textContent;
+                    showCapacityDetails(label);
+                });
+            }
+        });
+
+        // Modal functions
+        function showDeviceModal() {
+            const modal = createModal('Storage Devices', `
+                <div style="padding: 20px;">
+                    <h3>Available Storage Devices</h3>
+                    <p>Click on any device in the Physical Layer section to view detailed information including:</p>
+                    <ul style="margin: 16px 0; padding-left: 20px;">
+                        <li>Capacity and utilization metrics</li>
+                        <li>Performance statistics (IOPS, throughput)</li>
+                        <li>SMART health data and temperature</li>
+                        <li>Historical trends and predictions</li>
+                    </ul>
+                    <button onclick="closeModal()" style="padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">Got it</button>
+                </div>
+            `);
+        }
+
+        function showFilesystemModal() {
+            const modal = createModal('Filesystem Analytics', `
+                <div style="padding: 20px;">
+                    <h3>Filesystem Analysis</h3>
+                    <p>The filesystem analytics provide insights into:</p>
+                    <ul style="margin: 16px 0; padding-left: 20px;">
+                        <li>Filesystem type distribution and optimization</li>
+                        <li>Inode utilization and availability</li>
+                        <li>Mount point health and performance</li>
+                        <li>Fragmentation analysis and recommendations</li>
+                    </ul>
+                    <button onclick="closeModal()" style="padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            `);
+        }
+
+        function showPerformanceModal() {
+            const modal = createModal('Performance Metrics', `
+                <div style="padding: 20px;">
+                    <h3>Storage Performance Analysis</h3>
+                    <p>Performance metrics include:</p>
+                    <ul style="margin: 16px 0; padding-left: 20px;">
+                        <li>Real-time IOPS and throughput measurements</li>
+                        <li>I/O latency analysis and bottleneck detection</li>
+                        <li>Queue depth optimization recommendations</li>
+                        <li>Performance trending and capacity planning</li>
+                    </ul>
+                    <div style="margin-top: 20px;">
+                        <button onclick="loadPerformanceDetails()" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;">View Details</button>
+                        <button onclick="closeModal()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                    </div>
+                </div>
+            `);
+        }
+
+        function showHealthDetails(type) {
+            const modal = createModal(`${type} Details`, `
+                <div style="padding: 20px;">
+                    <h3>${type} Health Status</h3>
+                    <p>Health monitoring for ${type.toLowerCase()} includes:</p>
+                    <ul style="margin: 16px 0; padding-left: 20px;">
+                        <li>Real-time status monitoring</li>
+                        <li>Predictive failure analysis</li>
+                        <li>Threshold-based alerting</li>
+                        <li>Historical trend analysis</li>
+                    </ul>
+                    <button onclick="closeModal()" style="padding: 8px 16px; background: #6366f1; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            `);
+        }
+
+        function showCapacityDetails(mountpoint) {
+            const modal = createModal(`Capacity Details: ${mountpoint}`, `
+                <div style="padding: 20px;">
+                    <h3>Capacity Analysis for ${mountpoint}</h3>
+                    <p>Detailed capacity metrics and forecasting:</p>
+                    <ul style="margin: 16px 0; padding-left: 20px;">
+                        <li>Current utilization and growth trends</li>
+                        <li>Projected time to capacity exhaustion</li>
+                        <li>Optimization recommendations</li>
+                        <li>Storage efficiency improvements</li>
+                    </ul>
+                    <button onclick="loadCapacityTrends('${mountpoint}')" style="padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 8px;">View Trends</button>
+                    <button onclick="closeModal()" style="padding: 8px 16px; background: #6b7280; color: white; border: none; border-radius: 4px; cursor: pointer;">Close</button>
+                </div>
+            `);
+        }
+
+        function createModal(title, content) {
+            const modal = document.createElement('div');
+            modal.id = 'interactive-modal';
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.8); z-index: 1000;
+                display: flex; align-items: center; justify-content: center;
+                backdrop-filter: blur(5px);
+            `;
+            
+            modal.innerHTML = `
+                <div style="
+                    background: var(--bg-secondary); 
+                    border: 1px solid var(--border-color);
+                    border-radius: 12px; 
+                    max-width: 500px; 
+                    width: 90%; 
+                    max-height: 80vh; 
+                    overflow-y: auto;
+                    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+                ">
+                    <div style="
+                        padding: 20px; 
+                        border-bottom: 1px solid var(--border-color);
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    ">
+                        <h2 style="margin: 0; color: var(--text-primary);">${title}</h2>
+                        <button onclick="closeModal()" style="
+                            background: none; 
+                            border: none; 
+                            color: var(--text-muted); 
+                            font-size: 20px; 
+                            cursor: pointer;
+                            padding: 5px;
+                        ">&times;</button>
+                    </div>
+                    <div style="color: var(--text-secondary);">${content}</div>
+                </div>
+            `;
+            
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal) closeModal();
+            });
+            
+            document.body.appendChild(modal);
+            return modal;
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('interactive-modal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function loadPerformanceDetails() {
+            closeModal();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Highlight performance section
+            const perfSection = document.querySelector('.card .card-title').parentElement.parentElement;
+            if (perfSection) {
+                perfSection.style.border = '2px solid var(--primary-light)';
+                setTimeout(() => {
+                    perfSection.style.border = '1px solid var(--border-color)';
+                }, 2000);
+            }
+        }
+
+        function loadCapacityTrends(mountpoint) {
+            closeModal();
+            
+            // Find and highlight the specific capacity bar
+            const progressBars = document.querySelectorAll('.progress-container');
+            progressBars.forEach(bar => {
+                const label = bar.querySelector('.progress-label span').textContent;
+                if (label === mountpoint) {
+                    bar.style.transform = 'scale(1.05)';
+                    bar.style.background = 'rgba(99, 102, 241, 0.1)';
+                    bar.style.borderRadius = '8px';
+                    bar.style.padding = '8px';
+                    
+                    setTimeout(() => {
+                        bar.style.transform = 'scale(1)';
+                        bar.style.background = 'transparent';
+                        bar.style.padding = '0';
+                    }, 3000);
+                }
+            });
+        }
+
+        // Add keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Add tooltips for better UX
+        document.querySelectorAll('.metric-card, .device-item, .health-item').forEach(element => {
+            element.addEventListener('mouseenter', function() {
+                this.style.transform = 'scale(1.02)';
+            });
+            
+            element.addEventListener('mouseleave', function() {
+                this.style.transform = 'scale(1)';
             });
         });
     </script>
@@ -1193,6 +1437,252 @@ def storage_health_api():
         'health_summary': get_storage_health_summary(metrics),
         'performance_trends': get_performance_trends(metrics)
     })
+
+@app.route('/api/storage/device/<device_name>')
+def device_details_api(device_name):
+    """API endpoint for specific device details."""
+    metrics = get_comprehensive_storage_metrics()
+    device_info = None
+    
+    # Find the specific device
+    if metrics.get('physical_layer', {}).get('disk_devices'):
+        for device in metrics['physical_layer']['disk_devices']:
+            if device_name in device.get('device', '') or device_name in device.get('mountpoint', ''):
+                device_info = device
+                break
+    
+    if device_info:
+        # Add performance data if available
+        perf_data = metrics.get('performance_layer', {}).get('io_statistics', {})
+        device_perf = perf_data.get(device_name.replace('/dev/', ''), {})
+        
+        return jsonify({
+            'device': device_info,
+            'performance': device_perf,
+            'smart_data': metrics.get('physical_layer', {}).get('smart_data', {}).get(device_name.replace('/dev/', ''), {}),
+            'timestamp': datetime.now().isoformat()
+        })
+    else:
+        return jsonify({'error': 'Device not found'}), 404
+
+@app.route('/api/storage/filesystem/<path:mount_path>')
+def filesystem_details_api(mount_path):
+    """API endpoint for filesystem details."""
+    metrics = get_comprehensive_storage_metrics()
+    
+    # Get filesystem data
+    fs_data = {}
+    capacity_data = metrics.get('capacity_planning', {}).get('storage_efficiency', {}).get(f'/{mount_path}', {})
+    inode_data = metrics.get('filesystem_layer', {}).get('inode_usage', {}).get(f'/{mount_path}', {})
+    
+    if capacity_data or inode_data:
+        fs_data = {
+            'mount_path': f'/{mount_path}',
+            'capacity': capacity_data,
+            'inodes': inode_data,
+            'health': metrics.get('health_metrics', {}).get('filesystem_health', {}).get(f'/{mount_path}', {}),
+            'timestamp': datetime.now().isoformat()
+        }
+        return jsonify(fs_data)
+    else:
+        return jsonify({'error': 'Filesystem not found'}), 404
+
+@app.route('/storage/device/<device_name>')
+def device_detail_view(device_name):
+    """Detailed view for a specific storage device."""
+    return render_template_string("""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Details - {{ device_name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0e1a;
+            color: #f9fafb;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: #111827;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid #374151;
+        }
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #6366f1;
+            text-decoration: none;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+        .back-btn:hover { color: #818cf8; }
+        .device-title {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .card {
+            background: #111827;
+            border: 1px solid #374151;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+        .metric {
+            background: #1f2937;
+            padding: 16px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        .metric-label {
+            font-size: 12px;
+            color: #9ca3af;
+            text-transform: uppercase;
+        }
+        .chart-container { height: 300px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+            <h1 class="device-title">{{ device_name }} Details</h1>
+        </div>
+        
+        <div id="device-data" class="loading">
+            <i class="fas fa-spinner fa-spin" style="font-size: 24px;"></i>
+            <p>Loading device details...</p>
+        </div>
+    </div>
+
+    <script>
+        // Load device details
+        fetch(`/api/storage/device/{{ device_name }}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('device-data').innerHTML = 
+                        '<div class="card"><h3>Error</h3><p>' + data.error + '</p></div>';
+                    return;
+                }
+                
+                const deviceInfo = data.device;
+                const performance = data.performance;
+                const smartData = data.smart_data;
+                
+                document.getElementById('device-data').innerHTML = `
+                    <div class="card">
+                        <h3>Device Information</h3>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <div class="metric-value">${(deviceInfo.total / (1024**3)).toFixed(1)} GB</div>
+                                <div class="metric-label">Total Capacity</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${(deviceInfo.used / (1024**3)).toFixed(1)} GB</div>
+                                <div class="metric-label">Used Space</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${deviceInfo.percent.toFixed(1)}%</div>
+                                <div class="metric-label">Utilization</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${deviceInfo.fstype}</div>
+                                <div class="metric-label">Filesystem</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${performance && Object.keys(performance).length > 0 ? `
+                    <div class="card">
+                        <h3>Performance Metrics</h3>
+                        <div class="metric-grid">
+                            <div class="metric">
+                                <div class="metric-value">${performance.read_count || 0}</div>
+                                <div class="metric-label">Read Operations</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${performance.write_count || 0}</div>
+                                <div class="metric-label">Write Operations</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${((performance.read_bytes || 0) / (1024**2)).toFixed(1)} MB</div>
+                                <div class="metric-label">Data Read</div>
+                            </div>
+                            <div class="metric">
+                                <div class="metric-value">${((performance.write_bytes || 0) / (1024**2)).toFixed(1)} MB</div>
+                                <div class="metric-label">Data Written</div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${smartData && Object.keys(smartData).length > 0 ? `
+                    <div class="card">
+                        <h3>SMART Health Data</h3>
+                        <div class="metric-grid">
+                            ${smartData.temperature ? `
+                            <div class="metric">
+                                <div class="metric-value">${smartData.temperature}°C</div>
+                                <div class="metric-label">Temperature</div>
+                            </div>
+                            ` : ''}
+                            ${smartData.power_on_hours ? `
+                            <div class="metric">
+                                <div class="metric-value">${smartData.power_on_hours}</div>
+                                <div class="metric-label">Power On Hours</div>
+                            </div>
+                            ` : ''}
+                            ${smartData.reallocated_sectors !== undefined ? `
+                            <div class="metric">
+                                <div class="metric-value">${smartData.reallocated_sectors}</div>
+                                <div class="metric-label">Reallocated Sectors</div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                    ` : ''}
+                `;
+            })
+            .catch(error => {
+                document.getElementById('device-data').innerHTML = 
+                    '<div class="card"><h3>Error</h3><p>Failed to load device details</p></div>';
+            });
+    </script>
+</body>
+</html>
+    """, device_name=device_name)
 
 if __name__ == '__main__':
     print("Starting Enterprise Storage Analytics Dashboard on http://localhost:3000")
