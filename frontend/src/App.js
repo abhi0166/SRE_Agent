@@ -1,10 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import './App.css';
-import Dashboard from './components/Dashboard';
-import AlertsList from './components/AlertsList';
-import SystemMetrics from './components/SystemMetrics';
-import DatabaseView from './components/DatabaseView';
+import UnifiedDashboard from './components/UnifiedDashboard';
 import { ApiService } from './services/ApiService';
 import { useWebSocket } from './hooks/useWebSocket';
 
@@ -59,104 +55,27 @@ function App() {
     return () => clearInterval(interval);
   }, [fetchSystemData]);
 
-  // Memoized navigation items for performance
-  const navigationItems = useMemo(() => [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/alerts', label: 'Alerts', icon: '🚨' },
-    { path: '/metrics', label: 'System Metrics', icon: '📈' },
-    { path: '/database', label: 'Database', icon: '💾' }
-  ], []);
-
   if (loading && !systemStatus) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>Loading monitoring dashboard...</p>
+        <p>Initializing enterprise monitoring platform...</p>
       </div>
     );
   }
 
   return (
-    <Router>
-      <div className="app">
-        <header className="app-header">
-          <div className="header-content">
-            <div className="header-left">
-              <h1>🖥️ Monitoring Dashboard</h1>
-              <div className="connection-status">
-                <span className={`status-indicator ${connected ? 'connected' : 'disconnected'}`}>
-                  {connected ? '🟢 Live' : '🔴 Offline'}
-                </span>
-              </div>
-            </div>
-            <nav className="main-nav">
-              {navigationItems.map(item => (
-                <Link 
-                  key={item.path} 
-                  to={item.path} 
-                  className="nav-link"
-                >
-                  <span className="nav-icon">{item.icon}</span>
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
-          </div>
-        </header>
-
-        <main className="app-main">
-          {error && (
-            <div className="error-banner">
-              <span>⚠️ {error}</span>
-              <button onClick={fetchSystemData} className="retry-button">
-                Retry
-              </button>
-            </div>
-          )}
-
-          <Routes>
-            <Route 
-              path="/" 
-              element={
-                <Dashboard 
-                  systemStatus={systemStatus}
-                  alerts={alerts.slice(0, 10)}
-                  databaseStats={databaseStats}
-                  loading={loading}
-                />
-              } 
-            />
-            <Route 
-              path="/alerts" 
-              element={
-                <AlertsList 
-                  alerts={alerts}
-                  onRefresh={fetchSystemData}
-                />
-              } 
-            />
-            <Route 
-              path="/metrics" 
-              element={
-                <SystemMetrics 
-                  systemStatus={systemStatus}
-                  onRefresh={fetchSystemData}
-                />
-              } 
-            />
-            <Route 
-              path="/database" 
-              element={
-                <DatabaseView 
-                  databaseStats={databaseStats}
-                  onRefresh={fetchSystemData}
-                />
-              } 
-            />
-          </Routes>
-        </main>
-      </div>
-    </Router>
+    <div className="app">
+      <UnifiedDashboard 
+        systemStatus={systemStatus}
+        alerts={alerts}
+        databaseStats={databaseStats}
+        loading={loading}
+        error={error}
+        connected={connected}
+        onRefresh={fetchSystemData}
+      />
+    </div>
   );
 }
 
