@@ -192,11 +192,21 @@ def format_alert_for_jira(alert_data):
             "• This alert has been automatically resolved."
         ])
     
+    # Create valid JIRA labels (no spaces, special characters)
+    def sanitize_label(text):
+        import re
+        return re.sub(r'[^a-zA-Z0-9_-]', '-', text.lower()).strip('-')
+    
     return {
         'summary': summary,
         'description': '\n'.join(description_parts),
         'priority': 'High' if severity == 'critical' else 'Medium',
-        'labels': [f"alert-{alert_name.lower()}", f"severity-{severity}"],
+        'labels': [
+            f"alert-{sanitize_label(alert_name)}", 
+            f"severity-{sanitize_label(severity)}",
+            "storage-monitoring",
+            "automated"
+        ],
         'alert_data': alert_data
     }
 

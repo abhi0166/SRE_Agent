@@ -153,10 +153,19 @@ class JiraClient:
             
             # Add labels if provided
             if 'labels' in ticket_data and ticket_data['labels']:
-                payload['fields']['labels'] = ticket_data['labels']
+                # Sanitize labels to remove spaces and special characters
+                sanitized_labels = []
+                for label in ticket_data['labels']:
+                    import re
+                    clean_label = re.sub(r'[^a-zA-Z0-9_-]', '-', str(label).lower()).strip('-')
+                    if clean_label:
+                        sanitized_labels.append(clean_label)
+                
+                payload['fields']['labels'] = sanitized_labels
+                logger.info(f"JIRA labels: {sanitized_labels}")
             
             # Log the payload for debugging
-            logger.debug(f"Creating JIRA ticket with payload: {json.dumps(payload, indent=2)}")
+            logger.info(f"Creating JIRA ticket: {payload['fields']['summary']}")
             
             # Make API request
             url = f"{self.jira_url}/rest/api/2/issue"
