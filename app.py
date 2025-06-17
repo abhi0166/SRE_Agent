@@ -11,7 +11,8 @@ from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
 from database.sqlite_store import SQLiteAlertStore
-from slack_integration import send_alert_to_slack, get_slack_notifier
+from slack_integration import send_alert_to_slack
+from slack_events import handle_slack_event
 
 # Load environment variables
 load_dotenv()
@@ -728,6 +729,28 @@ def create_jira_ticket():
         </body>
         </html>
         """, 500
+
+@app.route('/slack/events', methods=['POST'])
+def slack_events():
+    """
+    Handle Slack Events API for interactive emoji reactions.
+    Enables 2-way communication for alert assignment.
+    """
+    try:
+        event_data = request.get_json()
+        
+        # Handle the event through our Slack Events handler
+        response = handle_slack_event(event_data)
+        
+        # Return appropriate response for Slack
+        if 'challenge' in response:
+            return response['challenge']
+        
+        return jsonify(response)
+        
+    except Exception as e:
+        logger.error(f"Error handling Slack event: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @app.route('/runbooks/<alertname>')
 def get_runbook(alertname):

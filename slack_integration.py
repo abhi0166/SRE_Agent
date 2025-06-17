@@ -380,11 +380,11 @@ class SlackNotifier:
             }]
         }
     
-    def send_storage_alert(self, alert_data: Dict[str, Any]) -> bool:
+    def send_storage_alert(self, alert_data: Dict[str, Any]) -> Dict[str, Any]:
         """Send enterprise-formatted storage alert to Slack channel."""
         if not self.client:
             logger.error("Slack client not initialized")
-            return False
+            return {"success": False, "error": "Slack client not initialized"}
         
         try:
             message_blocks = self.format_storage_alert(alert_data)
@@ -405,17 +405,24 @@ class SlackNotifier:
                     alert_name = alert_data.get('alertname', 'Unknown')
                     
                 logger.info(f"Alert sent to Slack successfully: {alert_name}")
-                return True
+                
+                # Return success with message timestamp for reaction tracking
+                return {
+                    "success": True, 
+                    "message_ts": result.get("ts"),
+                    "channel": result.get("channel"),
+                    "alert_name": alert_name
+                }
             else:
                 logger.error(f"Failed to send alert to Slack: {result.get('error', 'Unknown error')}")
-                return False
+                return {"success": False, "error": result.get('error', 'Unknown error')}
                 
         except SlackApiError as e:
             logger.error(f"Slack API error sending alert: {e.response['error']}")
-            return False
+            return {"success": False, "error": e.response['error']}
         except Exception as e:
             logger.error(f"Unexpected error sending alert: {str(e)}")
-            return False
+            return {"success": False, "error": str(e)}
 
     def send_system_status(self, metrics: Dict[str, Any]) -> bool:
         """Send periodic system status updates to Slack."""
@@ -435,12 +442,12 @@ def get_slack_notifier() -> Optional[SlackNotifier]:
         _slack_notifier = SlackNotifier()
     return _slack_notifier
 
-def send_alert_to_slack(alert_data: Dict[str, Any]) -> bool:
+def send_alert_to_slack(alert_data: Dict[str, Any]) -> Dict[str, Any]:
     """Convenience function to send alert to Slack."""
     notifier = get_slack_notifier()
     if notifier:
         return notifier.send_storage_alert(alert_data)
-    return False
+    return {"success": False, "error": "Slack notifier not available"}
 
 def send_status_to_slack(metrics: Dict[str, Any]) -> bool:
     """Convenience function to send status update to Slack."""
