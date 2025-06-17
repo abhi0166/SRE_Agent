@@ -245,8 +245,25 @@ def handle_alert():
         else:
             logger.warning("Failed to send alert to Slack")
         
-        # Create JIRA ticket
-        result = jira_client.create_ticket(jira_data)
+        # Check for existing JIRA ticket before creating new one
+        primary_alert = alert_data.get('alerts', [{}])[0]
+        alertname = primary_alert.get('labels', {}).get('alertname', 'Unknown')
+        instance = primary_alert.get('labels', {}).get('instance', 'unknown')
+        
+        existing_ticket = alert_store.check_ticket_exists_for_alert(alertname, instance)
+        
+        if existing_ticket:
+            logger.info(f"Existing JIRA ticket found: {existing_ticket['ticket_key']} for {alertname} on {instance}")
+            result = {
+                'success': True,
+                'ticket_exists': True,
+                'ticket_key': existing_ticket['ticket_key'],
+                'ticket_url': existing_ticket['ticket_url'],
+                'message': f"Ticket already exists: {existing_ticket['ticket_key']}"
+            }
+        else:
+            # Create new JIRA ticket
+            result = jira_client.create_ticket(jira_data)
         
         # Store alert in database regardless of JIRA/Slack result
         alert_id = alert_store.store_alert(alert_data, result)
@@ -261,14 +278,26 @@ def handle_alert():
             alert_store.update_alert_status(alert_id, 'notified', slack_metadata)
         
         if result['success']:
-            logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")
-            return jsonify({
-                'message': 'Alert processed successfully',
-                'ticket_key': result['ticket_key'],
-                'ticket_url': result['ticket_url'],
-                'alert_id': alert_id,
-                'slack_sent': slack_sent
-            }), 200
+            if result.get('ticket_exists'):
+                logger.info(f"Using existing JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")
+                return jsonify({
+                    'message': result['message'],
+                    'ticket_key': result['ticket_key'],
+                    'ticket_url': result['ticket_url'],
+                    'alert_id': alert_id,
+                    'slack_sent': slack_sent,
+                    'ticket_exists': True
+                }), 200
+            else:
+                logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")
+                return jsonify({
+                    'message': 'Alert processed successfully',
+                    'ticket_key': result['ticket_key'],
+                    'ticket_url': result['ticket_url'],
+                    'alert_id': alert_id,
+                    'slack_sent': slack_sent,
+                    'ticket_exists': False
+                }), 200
         else:
             logger.error(f"Failed to create JIRA ticket: {result['error']}, but stored alert: {alert_id}")
             return jsonify({
@@ -639,6 +668,35 @@ def create_jira_ticket():
                     </div>
                     <p style="margin-top: 20px;">
                         <a href="http://localhost:3000" style="background: #0099ff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
+                    </p>
+                </div>
+            </body>
+            </html>
+            """
+        
+        # Check for existing JIRA ticket before creating new one
+        existing_ticket = alert_store.check_ticket_exists_for_alert(alertname, instance)
+        
+        if existing_ticket:
+            logger.info(f"Existing JIRA ticket found: {existing_ticket['ticket_key']} for {alertname} on {instance}")
+            return f"""
+            <html>
+            <head><title>Ticket Already Exists</title></head>
+            <body style="font-family: Arial; margin: 40px; background: #f5f5f5;">
+                <div style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                    <h2 style="color: #ff9800;">⚠️ Ticket Already Exists</h2>
+                    <p>A JIRA ticket already exists for this alert:</p>
+                    <div style="background: #fff3cd; padding: 15px; border-radius: 4px; margin: 20px 0; border-left: 4px solid #ff9800;">
+                        <strong>Existing Ticket:</strong> <a href="{existing_ticket['ticket_url']}" target="_blank">{existing_ticket['ticket_key']}</a><br>
+                        <strong>Created:</strong> {existing_ticket['created_at']}<br>
+                        <strong>Status:</strong> {existing_ticket['status']}<br>
+                        <strong>Alert:</strong> {alertname}<br>
+                        <strong>Instance:</strong> {instance}
+                    </div>
+                    <p>No duplicate ticket was created. Please use the existing ticket for tracking this issue.</p>
+                    <p>
+                        <a href="{existing_ticket['ticket_url']}" target="_blank" style="background: #0052cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-right: 10px;">View Ticket</a>
+                        <a href="http://localhost:3000" style="background: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">Return to Dashboard</a>
                     </p>
                 </div>
             </body>

@@ -410,6 +410,60 @@ class SQLiteAlertStore:
             logger.error(f"Error updating alert status: {e}")
             return False
     
+    def get_existing_jira_ticket(self, alert_signature: str) -> Optional[Dict]:
+        """
+        Check if JIRA ticket already exists for similar alert.
+        
+        Args:
+            alert_signature: Unique signature identifying similar alerts (alertname_instance)
+            
+        Returns:
+            Existing ticket information or None
+        """
+        if not self.is_connected():
+            return None
+            
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('''
+                SELECT jt.ticket_key, jt.ticket_url, jt.status, jt.created_at, a.alert_id
+                FROM jira_tickets jt
+                JOIN alerts a ON jt.alert_id = a.alert_id
+                WHERE a.alertname || '_' || a.instance = ?
+                AND jt.status != 'resolved'
+                ORDER BY jt.created_at DESC
+                LIMIT 1
+            ''', (alert_signature,))
+            
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'ticket_key': result[0],
+                    'ticket_url': result[1],
+                    'status': result[2],
+                    'created_at': result[3],
+                    'alert_id': result[4]
+                }
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error checking existing JIRA tickets: {str(e)}")
+            return None
+    
+    def check_ticket_exists_for_alert(self, alertname: str, instance: str) -> Optional[Dict]:
+        """
+        Check if open JIRA ticket exists for specific alert and instance.
+        
+        Args:
+            alertname: Alert name
+            instance: Instance identifier
+            
+        Returns:
+            Existing ticket info or None
+        """
+        alert_signature = f"{alertname}_{instance}"
+        return self.get_existing_jira_ticket(alert_signature)
+
     def close(self):
         """Close database connection."""
         if self.connection:
