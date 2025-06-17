@@ -10,6 +10,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
+from database.alert_store import AlertStore
 
 # Load environment variables
 load_dotenv()
@@ -23,8 +24,9 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Initialize JIRA client
+# Initialize JIRA client and database
 jira_client = JiraClient()
+alert_store = AlertStore()
 
 def format_alert_for_jira(alert_data):
     """
