@@ -1,4 +1,4 @@
-modules = ["python-3.11", "nodejs-20", "python3"]
+modules = ["python-3.11"]
 
 [nix]
 channel = "stable-24_05"
@@ -18,7 +18,7 @@ args = "Webhook Server"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "React Dashboard"
+args = "Monitoring Dashboard"
 
 [[workflows.workflow]]
 name = "Webhook Server"
@@ -30,12 +30,12 @@ args = "python run.py"
 waitForPort = 5000
 
 [[workflows.workflow]]
-name = "React Dashboard"
+name = "Monitoring Dashboard"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd frontend && npm start"
+args = "python monitoring/dashboard.py"
 waitForPort = 3000
 
 [deployment]

@@ -8,7 +8,6 @@ import json
 import logging
 from datetime import datetime
 from flask import Flask, request, jsonify
-from flask_cors import CORS
 from dotenv import load_dotenv
 from jira_client import JiraClient
 from database.sqlite_store import SQLiteAlertStore
@@ -24,9 +23,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-# Enable CORS for all domains on all routes
-CORS(app, origins=["http://localhost:3000", "http://172.31.128.110:3000", "https://*.replit.app"], supports_credentials=True)
 
 # Initialize JIRA client and database
 jira_client = JiraClient()
@@ -320,65 +316,6 @@ def get_alert_stats():
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Error retrieving stats: {e}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/status', methods=['GET'])
-def get_system_status():
-    """Get current system status and metrics."""
-    try:
-        import psutil
-        import os
-        
-        # Get CPU usage
-        cpu_percent = psutil.cpu_percent(interval=1)
-        
-        # Get memory usage
-        memory = psutil.virtual_memory()
-        memory_percent = memory.percent
-        
-        # Get disk usage for all mounted filesystems
-        disk_usage = {}
-        for partition in psutil.disk_partitions():
-            try:
-                partition_usage = psutil.disk_usage(partition.mountpoint)
-                disk_usage[partition.mountpoint] = {
-                    'total': f"{partition_usage.total // (1024**3)} GB",
-                    'used': f"{partition_usage.used // (1024**3)} GB",
-                    'free': f"{partition_usage.free // (1024**3)} GB",
-                    'percent': round((partition_usage.used / partition_usage.total) * 100, 1)
-                }
-            except PermissionError:
-                continue
-        
-        # Get primary disk usage percentage
-        main_disk = psutil.disk_usage('/')
-        disk_usage_percent = round((main_disk.used / main_disk.total) * 100, 1)
-        
-        # Get network I/O
-        network_io = psutil.net_io_counters()
-        
-        # Get load average (Unix-like systems)
-        try:
-            load_average = os.getloadavg()
-        except AttributeError:
-            load_average = [0, 0, 0]  # Windows fallback
-        
-        return jsonify({
-            'cpu_percent': cpu_percent,
-            'memory_percent': memory_percent,
-            'disk_usage_percent': disk_usage_percent,
-            'disk_usage': disk_usage,
-            'network_io': {
-                'bytes_sent': network_io.bytes_sent,
-                'bytes_recv': network_io.bytes_recv,
-                'packets_sent': network_io.packets_sent,
-                'packets_recv': network_io.packets_recv
-            },
-            'load_average': list(load_average),
-            'timestamp': datetime.utcnow().isoformat()
-        })
-    except Exception as e:
-        logger.error(f"Error getting system status: {e}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/metrics', methods=['GET'])
