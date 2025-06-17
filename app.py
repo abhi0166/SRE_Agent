@@ -235,8 +235,11 @@ def handle_alert():
             logger.warning("No valid alerts found in webhook data")
             return jsonify({'message': 'No valid alerts to process'}), 200
         
-        # Send alert to Slack first
-        slack_sent = send_alert_to_slack(alert_data)
+        # Send alert to Slack and capture message timestamp
+        slack_result = send_alert_to_slack(alert_data)
+        slack_sent = slack_result.get('success', False)
+        slack_message_ts = slack_result.get('message_ts')
+        
         if slack_sent:
             logger.info("Alert sent to Slack successfully")
         else:
@@ -247,6 +250,15 @@ def handle_alert():
         
         # Store alert in database regardless of JIRA/Slack result
         alert_id = alert_store.store_alert(alert_data, result)
+        
+        # Update alert with Slack metadata if message was sent successfully
+        if slack_sent and slack_message_ts and alert_id:
+            slack_metadata = {
+                'slack_message_ts': slack_message_ts,
+                'slack_channel': slack_result.get('channel'),
+                'slack_sent_at': datetime.now().isoformat()
+            }
+            alert_store.update_alert_status(alert_id, 'notified', slack_metadata)
         
         if result['success']:
             logger.info(f"Successfully created JIRA ticket: {result['ticket_key']}, stored alert: {alert_id}")

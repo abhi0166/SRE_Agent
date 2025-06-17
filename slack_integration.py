@@ -146,11 +146,11 @@ class SlackNotifier:
                         timestamp_str = timestamp_str[:-1] + '+00:00'
                     dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
                     formatted_time = dt.strftime('%Y-%m-%d %H:%M:%S UTC')
-                    alert_id = f"{alertname.lower()}_{instance}_{int(dt.timestamp())}"
+                    alert_id = f"{str(alertname).lower()}_{str(instance)}_{int(dt.timestamp())}"
                 else:
-                    alert_id = f"{alertname.lower()}_{instance}_{int(datetime.now().timestamp())}"
+                    alert_id = f"{str(alertname).lower()}_{str(instance)}_{int(datetime.now().timestamp())}"
             except:
-                alert_id = f"{alertname.lower()}_{instance}_{int(datetime.now().timestamp())}"
+                alert_id = f"{str(alertname).lower()}_{str(instance)}_{int(datetime.now().timestamp())}"
         
         # Enterprise header with executive visibility
         header_text = f"{config['emoji']} {config['prefix']}: {alertname}"
