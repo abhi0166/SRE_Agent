@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import './App.css';
 import UnifiedDashboard from './components/UnifiedDashboard';
-import { ApiService } from './services/ApiService';
+import ApiService from './services/ApiService';
 import { useWebSocket } from './hooks/useWebSocket';
 
 function App() {
