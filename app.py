@@ -10,7 +10,7 @@ from datetime import datetime
 from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from jira_client import JiraClient
-from database.alert_store import AlertStore
+from database.sqlite_store import SQLiteAlertStore
 
 # Load environment variables
 load_dotenv()
@@ -26,7 +26,7 @@ app = Flask(__name__)
 
 # Initialize JIRA client and database
 jira_client = JiraClient()
-alert_store = AlertStore()
+alert_store = SQLiteAlertStore()
 
 def format_alert_for_jira(alert_data):
     """
@@ -347,8 +347,9 @@ def get_database_status():
             stats = alert_store.get_alert_stats()
             return jsonify({
                 'connected': True,
-                'database': alert_store.database_name,
-                'collections': {
+                'database_type': 'SQLite',
+                'database_file': 'alerts.db',
+                'tables': {
                     'alerts': stats.get('total_alerts', 0),
                     'jira_tickets': stats.get('jira_tickets', 0),
                     'recent_24h': stats.get('recent_24h', 0)
