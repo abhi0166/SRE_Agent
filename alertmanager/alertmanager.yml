@@ -1,0 +1,37 @@
+# Alertmanager configuration for webhook routing
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alertmanager@localhost'
+
+# Route configuration
+route:
+  group_by: ['alertname']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  receiver: 'disk-monitoring-webhook'
+  routes:
+    - match:
+        team: datacenter_ops
+      receiver: 'disk-monitoring-webhook'
+
+# Webhook receiver configuration
+receivers:
+  - name: 'disk-monitoring-webhook'
+    webhook_configs:
+      - url: 'http://localhost:5000/webhook/alert'
+        send_resolved: true
+        http_config:
+          basic_auth:
+            username: 'webhook_user'
+            password: 'webhook_pass'
+        title: 'Disk Monitoring Alert: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}'
+        text: '{{ range .Alerts }}{{ .Annotations.description }}{{ end }}'
+
+# Inhibit rules to prevent spam
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']

@@ -1,0 +1,63 @@
+# Configuration file for monitoring thresholds and settings
+
+# Disk space thresholds (percentage of free space)
+disk_space:
+  critical_threshold: 10  # Alert when less than 10% free space
+  warning_threshold: 20   # Alert when less than 20% free space
+  check_interval: 30s     # How often to check disk space
+
+# SMART monitoring settings
+smart_monitoring:
+  enabled: true
+  check_interval: 60s     # How often to check SMART status
+  critical_attributes:    # SMART attributes that trigger critical alerts
+    - "Reallocated_Sector_Ct"
+    - "Current_Pending_Sector" 
+    - "Offline_Uncorrectable"
+    - "End-to-End_Error"
+  warning_attributes:     # SMART attributes that trigger warning alerts
+    - "Spin_Retry_Count"
+    - "Reported_Uncorrect"
+    - "Command_Timeout"
+
+# Alert timing settings
+alerting:
+  group_wait: 30s         # Wait before sending a group of alerts
+  group_interval: 5m      # How often to send updates for a group
+  repeat_interval: 12h    # How often to resend the same alert
+  resolve_timeout: 5m     # Consider alert resolved if not firing for this long
+
+# JIRA ticket settings
+jira:
+  project: "DCOPS"                    # JIRA project key
+  assignee: "datacenter.ops"          # Default assignee
+  issue_type: "Task"                  # Type of issue to create
+  priority_mapping:                   # Map alert severity to JIRA priority
+    critical: "High"
+    warning: "Medium"
+    info: "Low"
+  labels:                             # Default labels for tickets
+    - "automated"
+    - "disk-monitoring"
+    - "prometheus"
+
+# Webhook server settings  
+webhook:
+  host: "0.0.0.0"
+  port: 5000
+  auth:
+    username: "webhook_user"
+    password: "webhook_pass"
+  logging:
+    level: "INFO"
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# System settings
+system:
+  excluded_filesystems:               # Filesystems to exclude from monitoring
+    - "tmpfs"
+    - "devtmpfs" 
+    - "devfs"
+    - "sysfs"
+    - "proc"
+  minimum_disk_size: "1GB"           # Ignore disks smaller than this

@@ -1,0 +1,56 @@
+# Prometheus alert rules for disk monitoring
+groups:
+  - name: disk_monitoring
+    rules:
+      # Disk space usage alerts
+      - alert: DiskSpaceHigh
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"} * 100) < 10
+        for: 2m
+        labels:
+          severity: critical
+          team: datacenter_ops
+        annotations:
+          summary: "Disk space critically low on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} has only {{ $value | humanize }}% available space remaining."
+
+      - alert: DiskSpaceWarning
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"} * 100) < 20
+        for: 5m
+        labels:
+          severity: warning
+          team: datacenter_ops
+        annotations:
+          summary: "Disk space low on {{ $labels.instance }}"
+          description: "Filesystem {{ $labels.mountpoint }} on {{ $labels.instance }} has {{ $value | humanize }}% available space remaining."
+
+      # SMART health alerts
+      - alert: SmartHealthFailure
+        expr: smart_device_health_ok == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: datacenter_ops
+        annotations:
+          summary: "SMART health check failed for {{ $labels.device }}"
+          description: "Device {{ $labels.device }} on {{ $labels.instance }} has failed SMART health checks. Immediate attention required."
+
+      - alert: SmartAttributeFailure
+        expr: smart_attribute_value < smart_attribute_threshold and smart_attribute_when_failed != ""
+        for: 1m
+        labels:
+          severity: warning
+          team: datacenter_ops
+        annotations:
+          summary: "SMART attribute {{ $labels.attribute_name }} approaching failure"
+          description: "SMART attribute {{ $labels.attribute_name }} on device {{ $labels.device }} has value {{ $value }} which is below threshold."
+
+      # Node Exporter down alert
+      - alert: NodeExporterDown
+        expr: up{job="node_exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: datacenter_ops
+        annotations:
+          summary: "Node Exporter is down"
+          description: "Node Exporter has been down for more than 1 minute."
