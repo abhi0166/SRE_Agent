@@ -247,7 +247,7 @@ def handle_alert():
         
         # Check for existing JIRA ticket before creating new one
         primary_alert = alert_data.get('alerts', [{}])[0]
-        alertname = primary_alert.get('labels', {}).get('alertname', 'Unknown')
+        alertname = primary_alert.get('labels', {}).get('alertname') or alert_data.get('groupLabels', {}).get('alertname', 'Unknown')
         instance = primary_alert.get('labels', {}).get('instance', 'unknown')
         
         existing_ticket = alert_store.check_ticket_exists_for_alert(alertname, instance)

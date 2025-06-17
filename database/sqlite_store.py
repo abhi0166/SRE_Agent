@@ -131,8 +131,12 @@ class SQLiteAlertStore:
             primary_alert = alerts[0]
             labels = primary_alert.get('labels', {})
             
+            # Extract alert name from multiple possible sources
+            alertname = labels.get('alertname') or alert_data.get('groupLabels', {}).get('alertname', 'unknown')
+            instance = labels.get('instance', 'unknown')
+            
             # Generate alert ID
-            alert_id = f"{labels.get('alertname', 'unknown')}_{labels.get('instance', 'unknown')}_{int(datetime.now().timestamp())}"
+            alert_id = f"{alertname.lower()}_{instance}_{int(datetime.now().timestamp())}"
             
             cursor = self.connection.cursor()
             
@@ -144,8 +148,8 @@ class SQLiteAlertStore:
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 alert_id,
-                labels.get('alertname', 'unknown'),
-                labels.get('instance', 'unknown'),
+                alertname,
+                instance,
                 labels.get('severity', 'unknown'),
                 alert_data.get('status', 'firing'),
                 json.dumps(labels),
