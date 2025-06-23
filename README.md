@@ -2,6 +2,8 @@
 
 An advanced enterprise-grade storage monitoring solution with intelligent alerting, automated JIRA ticketing, interactive Slack assignment, and comprehensive analytics dashboard.
 
+## Demo: https://youtu.be/y8xeC-W-K3o
+
 ## 🚀 Key Features
 
 ### Core Monitoring
