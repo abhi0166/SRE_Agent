@@ -1,5 +1,4 @@
 # Enterprise Storage Metrics Architecture
-## Principal Architect Level - 20+ Years Storage Engineering Expertise
 
 ### Storage Stack Coverage
 
