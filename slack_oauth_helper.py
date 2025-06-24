@@ -9,8 +9,8 @@ import requests
 from urllib.parse import urlencode
 
 # Your app credentials
-CLIENT_ID = "8991856883520.9064120674466"
-CLIENT_SECRET = "ff7a3eeef8aeb4502c9ba1696f06f21a"
+CLIENT_ID = "*************"
+CLIENT_SECRET = "*******************"
 REDIRECT_URI = "http://localhost:5000/slack/oauth/callback"
 
 def generate_oauth_url():
