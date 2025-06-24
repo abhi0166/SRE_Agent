@@ -6,11 +6,11 @@ Here’s the requirements document in a professional format suitable for inclusi
 
 Project Name:
 
-MacBook Disk Monitoring and Automated JIRA Ticketing System
+Disk Monitoring and Automated JIRA Ticketing System
 
 Objective:
 
-To build a fully open-source, local monitoring solution on macOS that tracks disk health and storage usage. Upon crossing specified thresholds (e.g., low disk space or SMART health failure), the system must automatically raise a JIRA ticket assigned to the Datacenter Ops team.
+To build a fully open-source, local monitoring solution on macOS that tracks disk health and storage usage. Upon crossing specified thresholds (e.g., low disk space or SMART health failure), the system must automatically raise a JIRA ticket assigned to the Ops team.
 
 ⸻
 
