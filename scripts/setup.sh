@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# MacBook Disk Monitoring Setup Script
+# Disk Monitoring Setup Script
 # This script installs and configures all necessary components
 
 set -e
 
-echo "=== MacBook Disk Monitoring System Setup ==="
+echo "=== Disk Monitoring System Setup ==="
 echo "This script will install Prometheus, Node Exporter, Alertmanager, and smartmontools"
 echo
 
-# Check if running on macOS
+# Check if running on Mac machine
 if [[ "$OSTYPE" != "darwin"* ]]; then
     echo "Error: This script is designed for macOS only"
     exit 1
