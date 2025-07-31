@@ -1,4 +1,4 @@
-# Enterprise Storage Monitoring & Alerting System
+# SRE Agent - Enterprise Storage Monitoring & Pro active Alerting System
 
 An advanced enterprise-grade storage monitoring solution with intelligent alerting, automated JIRA ticketing, interactive Slack assignment, and comprehensive analytics dashboard.
 
